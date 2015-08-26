@@ -27,6 +27,10 @@
 	<xsl:include href="terceros11.xslt"/>
 	<xsl:include href="ventavehiculos.xslt"/>
 	<xsl:include href="vehiculousado.xslt"/>
+	<xsl:include href="servicioparcialconstruccion.xslt"/>
+	<xsl:include href="renovacionysustitucionvehiculos.xslt"/>
+	<xsl:include href="certificadodedestruccion.xslt"/>
+	<xsl:include href="obrasarteantiguedades.xslt"/>
 	<!-- Aquí iniciamos el procesamiento de la cadena original con su | inicial y el terminador || -->
 	<xsl:template match="/">|<xsl:apply-templates select="/cfdi:Comprobante"/>||</xsl:template>
 	<!--  Aquí iniciamos el procesamiento de los datos incluidos en el comprobante -->

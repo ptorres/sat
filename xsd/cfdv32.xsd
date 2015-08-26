@@ -18,6 +18,10 @@
     <xs:import namespace="http://www.sat.gob.mx/terceros" schemaLocation="terceros11.xsd"/>
     <xs:import namespace="http://www.sat.gob.mx/ventavehiculos" schemaLocation="ventavehiculos.xsd"/>
     <xs:import namespace="http://www.sat.gob.mx/vehiculousado" schemaLocation="vehiculousado.xsd"/>
+    <xs:import namespace="http://www.sat.gob.mx/servicioparcialconstruccion" schemaLocation="servicioparcialconstruccion.xsd"/>
+    <xs:import namespace="http://www.sat.gob.mx/renovacionysustitucionvehiculos" schemaLocation="renovacionysustitucionvehiculos.xsd"/>
+    <xs:import namespace="http://www.sat.gob.mx/certificadodestruccion" schemaLocation="certificadodestruccion.xsd"/>
+    <xs:import namespace="http://www.sat.gob.mx/arteantiguedades" schemaLocation="obrasarteantiguedades.xsd"/>
 	<xs:element name="Comprobante">
 		<xs:annotation>
 			<xs:documentation>Estándar de Comprobante fiscal digital a través de Internet.</xs:documentation>
