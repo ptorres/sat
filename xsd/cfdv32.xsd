@@ -1,27 +1,37 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!-- edited with XMLSpy v2010 rel. 3 (http://www.altova.com) by SAT (SAT) -->
 <xs:schema xmlns:cfdi="http://www.sat.gob.mx/cfd/3" xmlns:xs="http://www.w3.org/2001/XMLSchema"  xmlns:detallista="http://www.sat.gob.mx/detallista" xmlns:tfd="http://www.sat.gob.mx/TimbreFiscalDigital" xmlns:implocal="http://www.sat.gob.mx/implocal" xmlns:leyendasFisc="http://www.sat.gob.mx/leyendasFiscales" targetNamespace="http://www.sat.gob.mx/cfd/3" elementFormDefault="qualified" attributeFormDefault="unqualified">
-    <xs:import namespace="http://www.sat.gob.mx/divisas" schemaLocation="Divisas.xsd"/>
     <xs:import namespace="http://www.sat.gob.mx/TimbreFiscalDigital" schemaLocation="TimbreFiscalDigital.xsd"/>
-    <xs:import namespace="http://www.sat.gob.mx/TuristaPasajeroExtranjero" schemaLocation="TuristaPasajeroExtranjero.xsd"/>
-    <xs:import namespace="http://www.sat.gob.mx/registrofiscal" schemaLocation="cfdiregistrofiscal.xsd"/>
-    <xs:import namespace="http://www.sat.gob.mx/detallista" schemaLocation="detallista.xsd"/>
-    <xs:import namespace="http://www.sat.gob.mx/donat" schemaLocation="donat11.xsd"/>
     <xs:import namespace="http://www.sat.gob.mx/ecc" schemaLocation="ecc.xsd"/>
-    <xs:import namespace="http://www.sat.gob.mx/iedu" schemaLocation="iedu.xsd"/>
+    <xs:import namespace="http://www.sat.gob.mx/donat" schemaLocation="donat11.xsd"/>
+    <xs:import namespace="http://www.sat.gob.mx/divisas" schemaLocation="Divisas.xsd"/>
     <xs:import namespace="http://www.sat.gob.mx/implocal" schemaLocation="implocal.xsd"/>
     <xs:import namespace="http://www.sat.gob.mx/leyendasFiscales" schemaLocation="leyendasFisc.xsd"/>
-    <xs:import namespace="http://www.sat.gob.mx/nomina" schemaLocation="nomina11.xsd"/>
     <xs:import namespace="http://www.sat.gob.mx/pfic" schemaLocation="pfic.xsd"/>
-    <xs:import namespace="http://www.sat.gob.mx/aerolineas" schemaLocation="aerolineas.xsd"/>
+    <xs:import namespace="http://www.sat.gob.mx/TuristaPasajeroExtranjero" schemaLocation="TuristaPasajeroExtranjero.xsd"/>
     <xs:import namespace="http://www.sat.gob.mx/spei" schemaLocation="spei.xsd"/>
-    <xs:import namespace="http://www.sat.gob.mx/terceros" schemaLocation="terceros11.xsd"/>
-    <xs:import namespace="http://www.sat.gob.mx/ventavehiculos" schemaLocation="ventavehiculos.xsd"/>
+    <xs:import namespace="http://www.sat.gob.mx/detallista" schemaLocation="detallista.xsd"/>
+    <xs:import namespace="http://www.sat.gob.mx/registrofiscal" schemaLocation="cfdiregistrofiscal.xsd"/>
+
+    <xs:import namespace="http://www.sat.gob.mx/nomina" schemaLocation="nomina11.xsd"/>
+
+    <xs:import namespace="http://www.sat.gob.mx/pagoenespecie" schemaLocation="pagoenespecie.xsd"/>
+    <xs:import namespace="http://www.sat.gob.mx/valesdedespensa" schemaLocation="valesdedespensa.xsd"/>
+    <xs:import namespace="http://www.sat.gob.mx/consumodecombustibles" schemaLocation="consumodecombustibles.xsd"/>
+    <xs:import namespace="http://www.sat.gob.mx/aerolineas" schemaLocation="aerolineas.xsd"/>
+
+    <xs:import namespace="http://www.sat.gob.mx/notariospublicos" schemaLocation="notariospublicos.xsd"/>
+
     <xs:import namespace="http://www.sat.gob.mx/vehiculousado" schemaLocation="vehiculousado.xsd"/>
     <xs:import namespace="http://www.sat.gob.mx/servicioparcialconstruccion" schemaLocation="servicioparcialconstruccion.xsd"/>
     <xs:import namespace="http://www.sat.gob.mx/renovacionysustitucionvehiculos" schemaLocation="renovacionysustitucionvehiculos.xsd"/>
     <xs:import namespace="http://www.sat.gob.mx/certificadodestruccion" schemaLocation="certificadodestruccion.xsd"/>
     <xs:import namespace="http://www.sat.gob.mx/arteantiguedades" schemaLocation="obrasarteantiguedades.xsd"/>
+
+    <xs:import namespace="http://www.sat.gob.mx/iedu" schemaLocation="iedu.xsd"/>
+    <xs:import namespace="http://www.sat.gob.mx/ventavehiculos" schemaLocation="ventavehiculos.xsd"/>
+    <xs:import namespace="http://www.sat.gob.mx/terceros" schemaLocation="terceros11.xsd"/>
+
 	<xs:element name="Comprobante">
 		<xs:annotation>
 			<xs:documentation>Estándar de Comprobante fiscal digital a través de Internet.</xs:documentation>

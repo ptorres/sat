@@ -11,26 +11,35 @@
 		En esta sección se define la inclusión de las demás plantillas de transformación para 
 		la generación de las cadenas originales de los complementos fiscales 
 	-->
-	<xsl:include href="Divisas.xslt"/>
-	<xsl:include href="TuristaPasajeroExtranjero.xslt"/>
-	<xsl:include href="cfdiregistrofiscal.xslt"/>
-	<xsl:include href="detallista.xslt"/>
-	<xsl:include href="donat11.xslt"/>
 	<xsl:include href="ecc.xslt"/>
-	<xsl:include href="iedu.xslt"/>
+	<xsl:include href="donat11.xslt"/>
+	<xsl:include href="Divisas.xslt"/>
 	<xsl:include href="implocal.xslt"/>
 	<xsl:include href="leyendasFisc.xslt"/>
-	<xsl:include href="nomina11.xslt"/>
-	<xsl:include href="pfic.xslt"/>
-	<xsl:include href="aerolineas.xslt"/>
+    <xsl:include href="pfic.xslt"/>
+	<xsl:include href="TuristaPasajeroExtranjero.xslt"/>
 	<xsl:include href="spei.xslt"/>
-	<xsl:include href="terceros11.xslt"/>
-	<xsl:include href="ventavehiculos.xslt"/>
+	<xsl:include href="detallista.xslt"/>
+    <xsl:include href="cfdiregistrofiscal.xslt"/>
+
+	<xsl:include href="nomina11.xslt"/>
+
+    <xsl:include href="pagoenespecie.xslt"/>
+    <xsl:include href="valesdedespensa.xslt"/>
+    <xsl:include href="consumodecombustibles.xslt"/>
+    <xsl:include href="aerolineas.xslt"/>
+
+    <xsl:include href="notariospublicos.xslt"/>
+
 	<xsl:include href="vehiculousado.xslt"/>
 	<xsl:include href="servicioparcialconstruccion.xslt"/>
 	<xsl:include href="renovacionysustitucionvehiculos.xslt"/>
 	<xsl:include href="certificadodedestruccion.xslt"/>
-	<xsl:include href="obrasarteantiguedades.xslt"/>
+    <xsl:include href="obrasarteantiguedades.xslt"/>
+
+	<xsl:include href="iedu.xslt"/>
+	<xsl:include href="ventavehiculos.xslt"/>
+	<xsl:include href="terceros11.xslt"/>
 	<!-- Aquí iniciamos el procesamiento de la cadena original con su | inicial y el terminador || -->
 	<xsl:template match="/">|<xsl:apply-templates select="/cfdi:Comprobante"/>||</xsl:template>
 	<!--  Aquí iniciamos el procesamiento de los datos incluidos en el comprobante -->
