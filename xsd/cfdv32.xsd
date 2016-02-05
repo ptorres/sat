@@ -22,15 +22,20 @@
 
     <xs:import namespace="http://www.sat.gob.mx/notariospublicos" schemaLocation="notariospublicos.xsd"/>
 
+
     <xs:import namespace="http://www.sat.gob.mx/vehiculousado" schemaLocation="vehiculousado.xsd"/>
     <xs:import namespace="http://www.sat.gob.mx/servicioparcialconstruccion" schemaLocation="servicioparcialconstruccion.xsd"/>
     <xs:import namespace="http://www.sat.gob.mx/renovacionysustitucionvehiculos" schemaLocation="renovacionysustitucionvehiculos.xsd"/>
-    <xs:import namespace="http://www.sat.gob.mx/certificadodestruccion" schemaLocation="certificadodestruccion.xsd"/>
+    <xs:import namespace="http://www.sat.gob.mx/certificadodestruccion" schemaLocation="certificadodedestruccion.xsd"/>
     <xs:import namespace="http://www.sat.gob.mx/arteantiguedades" schemaLocation="obrasarteantiguedades.xsd"/>
 
     <xs:import namespace="http://www.sat.gob.mx/iedu" schemaLocation="iedu.xsd"/>
     <xs:import namespace="http://www.sat.gob.mx/ventavehiculos" schemaLocation="ventavehiculos.xsd"/>
     <xs:import namespace="http://www.sat.gob.mx/terceros" schemaLocation="terceros11.xsd"/>
+
+    <xs:import namespace="http://www.sat.gob.mx/acreditamiento" schemaLocation="AcreditamientoIEPS10.xsd"/>
+
+    <xs:import namespace="http://www.sat.gob.mx/EstadoDeCuentaCombustible" schemaLocation="ecc11.xsd"/>
 
 	<xs:element name="Comprobante">
 		<xs:annotation>
