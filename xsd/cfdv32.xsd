@@ -36,6 +36,8 @@
     <xs:import namespace="http://www.sat.gob.mx/acreditamiento" schemaLocation="AcreditamientoIEPS10.xsd"/>
 
     <xs:import namespace="http://www.sat.gob.mx/EstadoDeCuentaCombustible" schemaLocation="ecc11.xsd"/>
+    <xs:import namespace="http://www.sat.gob.mx/ine" schemaLocation="ine10.xsd"/>
+    <xs:import namespace="http://www.sat.gob.mx/ComercioExterior" schemaLocation="ComercioExterior10.xsd"/>
 
 	<xs:element name="Comprobante">
 		<xs:annotation>

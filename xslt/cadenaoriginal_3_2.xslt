@@ -44,6 +44,8 @@
     <xsl:include href="AcreditamientoIEPS10.xslt"/>
 
     <xsl:include href="ecc11.xslt"/>
+    <xsl:include href="ine10.xslt"/>
+    <xsl:include href="ComercioExterior10.xslt"/>
 
 	<!-- Aquí iniciamos el procesamiento de la cadena original con su | inicial y el terminador || -->
 	<xsl:template match="/">|<xsl:apply-templates select="/cfdi:Comprobante"/>||</xsl:template>
