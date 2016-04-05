@@ -56,7 +56,7 @@
 // | 17/mar/15 Nueva estructura de directorio para repositorio GIT             |
 // |               xsd / xslt                                                  |
 // |                                                                           |
-// | 19/mar/15 Valida autorizad certificadora, para comprobar certificado      |
+// | 19/mar/15 Valida autoridad certificadora, para comprobar certificado      |
 // |           sea emitido por el SAT                                          |
 // +---------------------------------------------------------------------------+
 //
@@ -212,6 +212,9 @@ $conn=myconn();
 
 valida_certificado();
 valida_xsd();
+if ($data['tipo']=="cfdi") { // por lo pronto semantica solo para 3.2
+    valida_semantica();
+}
 valida_sello();
 if ($data['sellosat']!="") {
    valida_sello_tfd();
@@ -265,23 +268,6 @@ function valida_xsd() {
      * Ademas el archivo prinicpal cfdv32.xsd esta 'un poco' modifcado para
      * que importe los complementos
      *
-     * La version de mi maquina los pueden obtener de la misma URL
-     *
-     * http://www.lacorona.com.mx/fortiz/sat/cfdv32.xsd
-     * http://www.lacorona.com.mx/fortiz/sat/ecc.xsd
-     * http://www.lacorona.com.mx/fortiz/sat/...
-     *
-     * [dev@www sat]$ ls *xsd
-     * Divisas.xsd                   cfdv3.xsd              implocal.xsd
-     * TimbreFiscalDigital.xsd       cfdv32.xsd             leyendasFisc.xsd
-     * TuristaPasajeroExtranjero.xsd cfdv32complemento.xsd  nomina.xsd
-     * cfdiregistrofiscal.xsd        cfdv3complemento.xsd   nomina11.xsd
-     * cfdv2.xsd                     cfdv3tfd.xsd           pfic.xsd
-     * cfdv22.xsd                    detallista.xsd         spei.xsd
-     * cfdv22complemento.xsd         donat11.xsd            terceros11.xsd
-     * cfdv2complemento.xsd          ecc.xsd                ventavehiculos.xsd
-     * cfdv2psgecfd.xsd              iedu.xsd
-     *
      * */
 global $data, $xml,$texto;
 libxml_use_internal_errors(true);   // Gracias a Salim Giacoman
@@ -327,6 +313,44 @@ if ($ok) {
 echo "<hr>";
 }
 // }}} Valida XSD
+// {{{ Valida_semantica
+function valida_semantica() {
+    /* La sintaxis se valida contra el XSD, pero para algunos complementos
+     * dieron varias reglas de validacion adicionales, a esas le llame
+     *
+     *  Reglas de semantica
+     *        ine
+     *        cce
+     * */
+    global $texto;
+     if (strpos($texto,"ine:INE")!==FALSE) {
+         semantica_ine();
+     }
+     if (strpos($texto,"cce:ComercioExterior")!==FALSE) {
+         semantica_cce();
+     }
+}
+// }}} Valida semantica
+// {{{ Valida semantica ine
+function semantica_ine() {
+    global $xml, $conn;
+    echo "<h2>Semantica INE</h2>";
+    require_once("semantica_ine.php");
+    $ine = new Ine();
+    $ine->valida($xml,$conn);
+    echo "<h2>$ine->status</h2>";
+}
+// }}} 
+// {{{ Valida semantica cce
+function semantica_cce() {
+    global $xml, $conn;
+    echo "<h2>Semantica CCE</h2>";
+    require_once("semantica_cce.php");
+    $cce = new Cce();
+    $cce->valida($xml,$conn);
+    echo "<h2>$cce->status</h2>";
+}
+// }}} Valida semantica cce
 // {{{ Valida Sello
 function valida_sello() {
     /*
@@ -336,22 +360,6 @@ function valida_sello() {
      *
      * Todos los archivos estan modificacion por el numero de version 2 a 1,
      * para que no mande warning PHP
-     *
-     * La version de mi maquina los pueden obtener de la misma URL
-     *
-     * http://www.lacorona.com.mx/fortiz/sat/cadenaoriginal_TFD_1_0.xslt
-     * http://www.lacorona.com.mx/fortiz/sat/ecc.xslt
-     * http://www.lacorona.com.mx/fortiz/sat/...
-     *
-     * [dev@www sat]$ ls *xslt
-     * Divisas.xslt                   cfdiregistrofiscal.xslt  nomina11.xslt
-     * TuristaPasajeroExtranjero.xslt detallista.xslt          pfic.xslt
-     * cadenaoriginal_2_0.xslt        donat11.xslt             spei.xslt
-     * cadenaoriginal_2_2.xslt        ecc.xslt                 terceros11.xslt
-     * cadenaoriginal_3_0.xslt        iedu.xslt                utilerias.xslt
-     * cadenaoriginal_3_2.xslt        implocal.xslt          ventavehiculos.xslt
-     * cadenaoriginal_TFD_1_0.xslt    leyendasFisc.xslt
-     *
      *
      * */
 global $data, $xml;

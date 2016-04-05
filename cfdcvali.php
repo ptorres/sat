@@ -212,6 +212,9 @@ $conn=myconn();
 
 valida_certificado();
 valida_xsd();
+if ($data['tipo']=="cfdi") { // por lo pronto semantica solo para 3.2
+    valida_semantica();
+}
 valida_sello();
 if ($data['sellosat']!="") {
    valida_sello_tfd();
@@ -310,6 +313,44 @@ if ($ok) {
 echo "<hr>";
 }
 // }}} Valida XSD
+// {{{ Valida_semantica
+function valida_semantica() {
+    /* La sintaxis se valida contra el XSD, pero para algunos complementos
+     * dieron varias reglas de validacion adicionales, a esas le llame
+     *
+     *  Reglas de semantica
+     *        ine
+     *        cce
+     * */
+    global $texto;
+     if (strpos($texto,"ine:INE")!==FALSE) {
+         semantica_ine();
+     }
+     if (strpos($texto,"cce:ComercioExterior")!==FALSE) {
+         semantica_cce();
+     }
+}
+// }}} Valida semantica
+// {{{ Valida semantica ine
+function semantica_ine() {
+    global $xml, $conn;
+    echo "<h2>Semantica INE</h2>";
+    require_once("semantica_ine.php");
+    $ine = new Ine();
+    $ine->valida($xml,$conn);
+    echo "<h2>$ine->status</h2>";
+}
+// }}} 
+// {{{ Valida semantica cce
+function semantica_cce() {
+    global $xml, $conn;
+    echo "<h2>Semantica CCE</h2>";
+    require_once("semantica_cce.php");
+    $cce = new Cce();
+    $cce->valida($xml,$conn);
+    echo "<h2>$cce->status</h2>";
+}
+// }}} Valida semantica cce
 // {{{ Valida Sello
 function valida_sello() {
     /*
