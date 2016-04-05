@@ -1,6 +1,4 @@
 <?php
-error_reporting(E_ALL ^ E_NOTICE);
-require_once("/var/www/html/pac/sat/utils/Constantes.php");
 error_reporting(E_ALL);
 class Cce {
     var $xml_cfd;
