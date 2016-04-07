@@ -20,9 +20,9 @@ class Cce {
             $importe = (double)$Concepto->getAttribute("importe");
             $suma += $importe;
         }
-        $subTotal = (double)$Comprobante->getAttribute("subTotal");
-        if ($subTotal != $suma) {
-            $this->status = "La suma de Concepto:importe debe de ser igual a Comprobante:subTotal";
+        $subTotal = round((double)$Comprobante->getAttribute("subTotal"),2);
+        if (abs($subTotal - $suma) > 0.001) {
+            $this->status = "La suma de Concepto:importe {$suma} debe de ser igual a Comprobante:subTotal {$subTotal}";
             $this->codigo = "-2 ".$this->status;
             return false;
         }
@@ -241,7 +241,7 @@ class Cce {
             $suma += $ValorDolares;
             // echo "suma=$suma valo=$ValorDolares nb=$nb_Mercancias\n";
         }
-        if ($TotalUSD != $suma) {
+        if (abs($TotalUSD - $suma) > 0.001) {
             $this->status = "cce:TotalUSD {$TotalUSD} no es igual a la suma de Mercancia:ValorDolares {$suma}";
             $this->codigo = "-33 ".$this->status;
             return false;
@@ -510,8 +510,8 @@ class Cce {
                         }
                     } // Existe cantidad aduana
                     $aux = (double)$cantidad * (double)$valorUnitario;
-                    if ($aux != $importe) {
-                        $this->status = "cfdi:Concepto:importe no es igual a cantidad multiplicada por valorUnitario Id =$noIdentificacion}";
+                    if (($aux - $importe) > 0.001) {
+                        $this->status = "cfdi:Concepto:importe {importe} no es igual a cantidad multiplicada por valorUnitario {$aux} Id =$noIdentificacion}";
                         $this->codigo = "-76 ".$this->status;
                         return false;
                     }
