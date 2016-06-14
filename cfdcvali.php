@@ -95,6 +95,18 @@ if ($_FILES['arch']['error']==1 || $_FILES['arch']['size']==0) {
 $arch = $_FILES['arch']['tmp_name'];
 $texto = file_get_contents($arch);
 unlink($arch);
+if( substr($texto, 0,3) == pack("CCC",0xef,0xbb,0xbf) ) { 
+    $texto = substr($texto, 3); 
+    echo "<h3>Tenia BOM, Eliminado</h3>";
+} 
+if (!mb_check_encoding($texto,"utf-8")) {
+    echo "<h3>Error en XML, no esta en UTF-8!</h3>";
+}
+$nuevo = utf8_decode($texto);
+if (mb_check_encoding($nuevo,"utf-8")) {
+    echo "<h3>Sigue siendo utf8, usa decode</h3>";
+    $texto = $nuevo;
+}
 
 ///////////////////////////////////////////////////////////////////////////
 // Quita Addenda solo valida fiscal
@@ -348,7 +360,8 @@ function semantica_cce() {
     require_once("semantica_cce.php");
     $cce = new Cce();
     $cce->valida($xml,$conn);
-    echo "<h2>$cce->status</h2>";
+    echo "<h2>$cce->codigo</h2>";
+    echo "<hr/>";
 }
 // }}} Valida semantica cce
 // {{{ Valida Sello
@@ -444,7 +457,7 @@ if ($doble===1) {
 // Los demas certificados es del PAC, Timbre, etc.
 $pem = (sizeof($data['cert'])<=1) ? $data['cert'] : $data['cert'][0];
 
-$pem = eregi_replace("[\n|\r|\n\r]", '', $pem);
+$pem = preg_replace("/[\n|\r|\n\r]/", '', $pem);
 $pem = preg_replace('/\s\s+/', '', $pem); 
 // Si no incluye el certificado bajarlo del FTP del sat ....
 if (strlen($pem)==0) {
@@ -463,7 +476,7 @@ if (!$pubkeyid) {
     $pubkeyid = openssl_get_publickey(openssl_x509_read($cert));
 
 }
-valida_ca($pubkeyid);
+valida_ca(openssl_x509_read($cert));
 $ok = openssl_verify($cadena, 
                      base64_decode($data['sell']), 
                      $pubkeyid, 
@@ -556,7 +569,6 @@ echo "<hr>";
 // ftp://ftp2.sat.gob.mx/asistencia_servicio_ftp/publicaciones/cfdi/WS_ConsultaCFDI.pdf
 function valida_en_sat() {
     global $data;
-    error_reporting(E_ALL & ~(E_STRICT|E_NOTICE|E_WARNING|E_DEPRECATED));
     $url = "https://consultaqr.facturaelectronica.sat.gob.mx/consultacfdiservice.svc?wsdl";
     $soapclient = new SoapClient($url);
     $rfc_emisor = utf8_encode($data['rfc']);
