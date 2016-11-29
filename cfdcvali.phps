@@ -341,6 +341,9 @@ function valida_semantica() {
      if (strpos($texto,"cce:ComercioExterior")!==FALSE) {
          semantica_cce();
      }
+     if (strpos($texto,"nomina12:Nomina")!==FALSE) {
+         semantica_nomi12();
+     }
 }
 // }}} Valida semantica
 // {{{ Valida semantica ine
@@ -364,6 +367,17 @@ function semantica_cce() {
     echo "<hr/>";
 }
 // }}} Valida semantica cce
+// {{{ Valida semantica nomi12
+function semantica_nomi12() {
+    global $xml, $conn;
+    echo "<h2>Semantica NOMINA 12</h2>";
+    require_once("semantica_nomi12.php");
+    $nomi = new Nomi12();
+    $nomi->valida($xml,$conn);
+    echo "<h2>$nomi->codigo</h2>";
+    echo "<hr/>";
+}
+// }}} Valida semantica nomi12
 // {{{ Valida Sello
 function valida_sello() {
     /*
