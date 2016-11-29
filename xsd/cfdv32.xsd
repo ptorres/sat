@@ -39,6 +39,8 @@
     <xs:import namespace="http://www.sat.gob.mx/ine" schemaLocation="ine10.xsd"/>
     <xs:import namespace="http://www.sat.gob.mx/ComercioExterior" schemaLocation="ComercioExterior10.xsd"/>
 
+    <xs:import namespace="http://www.sat.gob.mx/Nomina12" schemaLocation="nomina12.xsd"/>
+
 	<xs:element name="Comprobante">
 		<xs:annotation>
 			<xs:documentation>Estándar de Comprobante fiscal digital a través de Internet.</xs:documentation>
