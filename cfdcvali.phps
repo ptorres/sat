@@ -157,53 +157,70 @@ if (strpos($texto,"cfdi:Comprobante")!==FALSE) {
 }
 
 ////////////////////////////////////////////////////////////////////////////
-//   Con XPath obtenemos el valor de los atributos del XML
-$xp = new DOMXpath($xml);
-$data['seri'] = utf8_decode(trim(getpath("//@serie")));
-$data['fecha'] = trim(getpath("//@fecha"));
-$data['noap'] = trim(getpath("//@noAprobacion"));
-$data['anoa'] = trim(getpath("//@anoAprobacion"));
+//   Con el arbol DOM buscamos los atributos
+if ($tipo=="retenciones") {
+    $root = $xml->getElementsByTagName('Retenciones')->item(0);
+    $Version = $root->getAttribute("Version");
+} else {
+    $root = $xml->getElementsByTagName('Comprobante')->item(0);
+    $version = $root->getAttribute("version");
+    if ($version==null) $version = $root->getAttribute("Version");
+}
+$Receptor = $root->getElementsByTagName('Receptor')->item(0);
+$Emisor = $root->getElementsByTagName('Emisor')->item(0);
+
+$data['seri'] = $root->getAttribute("serie");
+$data['fecha'] = $root->getAttribute("fecha");
+$data['noap'] = $root->getAttribute("noAprobacion");
+$data['anoa'] = $root->getAttribute("anoAprobacion");
 
 $data['tipo']=$tipo;
 if ($tipo=="retenciones") {
-    $data['rfc'] = utf8_decode(getpath("//@RFCEmisor"));
-    $data['rfc_receptor'] = utf8_decode(getpath("//@RFCRecep"));
-    // $data['total'] = getpath("//@montoTotOperacion");
-    $data['total'] = getpath("//@montoTotGrav");
-    if (is_array($data['total'])) $data['total'] = $data['total'][0];
-    $data['version'] = getpath("//@Version");
-    if (is_array($data['version'])) $data['version'] = $data['version'][0];
-    $data['version'] = trim($data['version']);
-    if (is_array($data['version'])) $data['version'] = $data['version'][0];
-    $data['no_cert'] = getpath("//@NumCert");
-    if (is_array($data['no_cert'])) $data['no_cert'] = $data['no_cert'][0];
-    $data['no_cert'] = trim($data['no_cert']);
-    $data['cert'] = getpath("//@Cert");
-    $data['sell'] = getpath("//@Sello");
+    $rfc = $Emisor->getAttribute('RFCEmisor');
+    $data['rfc'] = utf8_decode($rfc);
+    $rfc = $Receptor->getAttribute('RFCRecep');
+    $data['rfc_receptor'] = utf8_decode($rfc);
+    $data['version'] = $root->getAttribute("Version");
+    $data['no_cert'] = $root->getAttribute("NumCert");
+    $data['cert'] = $root->getAttribute("Cert");
+    $data['sell'] = $root->getAttribute("Sello");
+    $Totales = $root->getElementsByTagName('Totales')->item(0);
+    $data['total'] = $Totales->getAttribute("montoTotGrav");
 } else {
-    $rfc = getpath("//@rfc");
-    $data['rfc'] = utf8_decode($rfc[0]);
-    $data['rfc_receptor'] = utf8_decode($rfc[1]);
-    $data['total'] = getpath("//@total");
-    if (is_array($data['total'])) $data['total'] = $data['total'][0];
-    $data['version'] = getpath("//@version");
-    if (is_array($data['version'])) $data['version'] = $data['version'][0];
-    $data['version'] = trim($data['version']);
-    $data['no_cert'] = getpath("//@noCertificado");
-    if (is_array($data['no_cert'])) $data['no_cert'] = $data['no_cert'][0];
-    $data['no_cert'] = trim($data['no_cert']);
-    $data['cert'] = getpath("//@certificado");
-    $data['sell'] = getpath("//@sello");
+    $data['version'] = $version;
+    if ($version=="3.3") { // Mayusculas
+        $data['total'] = $root->getAttribute('Total');
+        $data['no_cert'] = $root->getAttribute('NoCertificado');
+        $data['cert'] = $root->getAttribute('Certificado');
+        $data['sell'] = $root->getAttribute('Sello');
+        $rfc = $Emisor->getAttribute('Rfc');
+        $data['rfc'] = utf8_decode($rfc);
+        $rfc = $Receptor->getAttribute('Rfc');
+        $data['rfc_receptor'] = utf8_decode($rfc);
+    } else { // NO es 3.3, es 3.2 o anterior minusculas
+        $data['total'] = $root->getAttribute('total');
+        $data['no_cert'] = $root->getAttribute('noCertificado');
+        $data['cert'] = $root->getAttribute('certificado');
+        $data['sell'] = $root->getAttribute('sello');
+        $rfc = $Emisor->getAttribute('rfc');
+        $data['rfc'] = utf8_decode($rfc);
+        $rfc = $Receptor->getAttribute('rfc');
+        $data['rfc_receptor'] = utf8_decode($rfc);
+    } // version 3.3
+} // Retencion o CFDI
+
+$TFD = $root->getElementsByTagName('TimbreFiscalDigital')->item(0);
+if ($TFD!=null) {
+    $data['sellocfd'] = $TFD->getAttribute("selloCFD");
+    $data['sellosat'] = $TFD->getAttribute("selloSAT");
+    $data['no_cert_sat'] = $TFD->getAttribute("noCertificadoSAT");
+    $data['uuid'] = $TFD->getAttribute("UUID");
+} else {
+    $data['sellocfd'] = null;
+    $data['sellosat'] = null;
+    $data['no_cert_sat'] = null;
+    $data['uuid'] = null;
 }
-
-$data['sellocfd'] = getpath("//@selloCFD");
-$data['sellosat'] = getpath("//@selloSAT");
-$data['no_cert_sat'] = getpath("//@noCertificadoSAT");
-$data['uuid'] = getpath("//@UUID");
-
-// echo "<pre>";
-// print_r($data);
-// echo "</pre>";
 //   Valores guardados en un arreglo para ser usado por las funciones
 /////////////////////////////////////////////////////////////////////////////
 
@@ -224,7 +241,7 @@ $conn=myconn();
 
 valida_certificado();
 valida_xsd();
-if ($data['tipo']=="cfdi") { // por lo pronto semantica solo para 3.2
+if ($data['tipo']=="cfdi") { // por lo pronto semantica solo para CFDI
     valida_semantica();
 }
 valida_sello();
@@ -311,6 +328,10 @@ if ($data['tipo']=="retenciones") {
         echo "Version 3.2 CFDI<br>";
         $ok = $xml->schemaValidate("xsd/cfdv32.xsd");
         break;
+      case "3.3":
+        echo "Version 3.3 CFDI<br>";
+        $ok = $xml->schemaValidate("xsd/cfdv33.xsd");
+        break;
       default:
         $ok = false;
         echo "Version invalida $tipo ".$data['version']."<br>";
@@ -333,8 +354,10 @@ function valida_semantica() {
      *  Reglas de semantica
      *        ine
      *        cce
+     *        nomina
+     *        cfdi 3.3
      * */
-    global $texto;
+    global $texto,$data;
      if (strpos($texto,"ine:INE")!==FALSE) {
          semantica_ine();
      }
@@ -343,6 +366,9 @@ function valida_semantica() {
      }
      if (strpos($texto,"nomina12:Nomina")!==FALSE) {
          semantica_nomi12();
+     }
+     if (strpos($texto,"cfdi:Comprobante")!==FALSE && $data['version']=="3.3") {
+         semantica_cfdi();
      }
 }
 // }}} Valida semantica
@@ -375,6 +401,17 @@ function semantica_nomi12() {
     $nomi = new Nomi12();
     $nomi->valida($xml,$conn);
     echo "<h2>$nomi->codigo</h2>";
+    echo "<hr/>";
+}
+// }}} Valida semantica nomi12
+// {{{ Valida semantica cfdi
+function semantica_cfdi() {
+    global $xml, $conn;
+    echo "<h2>Semantica CFDI 3.3</h2>";
+    require_once("semantica_cfdi.php");
+    $sem = new Sem_CFDI();
+    $sem->valida($xml,$conn);
+    echo "<h2>$sem->codigo</h2>";
     echo "<hr/>";
 }
 // }}} Valida semantica nomi12
@@ -433,6 +470,12 @@ if ($data['tipo']=="retenciones") {
       case "3.2":
           echo "3.2\n";
           $xsl->load('xslt/cadenaoriginal_3_2.xslt');
+          echo "sha1 \n";
+          $algo = OPENSSL_ALGO_SHA1;
+          break;
+      case "3.3":
+          echo "3.3\n";
+          $xsl->load('xslt/cadenaoriginal_3_3.xslt');
           echo "sha1 \n";
           $algo = OPENSSL_ALGO_SHA1;
           break;
@@ -681,18 +724,6 @@ function bcdechex($dec) {
     }
 }
 // }}} bcdechex
-// {{{ get path,  ejecuta el Xpath
-function getpath($qry) {
-global $xp;
-$prm = array();
-$nodelist = $xp->query($qry);
-foreach ($nodelist as $tmpnode)  {
-    $prm[] = trim($tmpnode->nodeValue);
-    }
-$ret = (sizeof($prm)<=1) ? $prm[0] : $prm;
-return($ret);
-}
-/// }}}}
 // {{{ display_xml_errors
 function display_xml_errors() {
     global $texto;
