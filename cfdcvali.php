@@ -677,14 +677,23 @@ function get_sat_cert($no_cert) {
         $path2 = "https://rdc.sat.gob.mx/rccf/$p1/$p2/$p3/$p4/$p5/$no_cert.cer";
         // Realiza 5 intentos para descargar el certificado
         // Gracias Rene Calderon
-        echo "Lee del SAT $path2<br>";
+        //
+        // Se ignora el ceftificado del servidor rdc del sat
+        $arrContextOptions=array(
+                "ssl"=>array(
+                    "verify_peer"=>false,
+                    "verify_peer_name"=>false,
+                    ),
+                );
+        $context = stream_context_create($arrContextOptions);
         $done = false;
         $x = 0;
         while ( ! $done ){
             //echo "intento: $x<br>";
             // Alterna servidor en cada intento ....
             $path = (($x%2)==0) ? $path1 : $path2;
-            $der = file_get_contents("$path");
+            $der = file_get_contents("$path",false,$context);
+            echo "Lee del SAT $path<br>";
             if ($der){
                 $done = true;  
             } else {

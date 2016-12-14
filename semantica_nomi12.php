@@ -451,16 +451,19 @@ class Nomi12 {
             return false;
         }
         $a_pago = (int)$PeriodicidadPago;
-        if ($TipoNomina=="E" && $a_pago != 99) {
-            $this->status = "NOM152; El valor del atributo tipo de periodicidad no es 99";
-            $this->codigo = "154 ".$this->status;
-            return false;
-        } elseif ($TipoNomina=="O" && $a_pago > 1 && $a_pago < 9) {
-            // OK
-        } else {
-            $this->status = "NOM153; El valor del atributo tipo de periodicidad no se encuentra entre 01 al 09";
-            $this->codigo = "153 ".$this->status;
-            return false;
+        if ($TipoNomina=="E") {
+           if ($a_pago != 99) {
+                $this->status = "NOM152; El valor del atributo tipo de periodicidad no es 99";
+                $this->codigo = "154 ".$this->status;
+                return false;
+           }
+        } 
+        if ($TipoNomina=="O") {
+           if ($a_pago < 1 || $a_pago > 9) {
+               $this->status = "NOM153; El valor del atributo tipo de periodicidad no se encuentra entre 01 al 09 ($a_pago) ($TipoNomina)";
+               $this->codigo = "153 ".$this->status;
+               return false;
+           }
         }
         $FechaInicialPago = new Datetime($nomi->getAttribute("FechaInicialPago"));
         $FechaFinalPago = new Datetime($nomi->getAttribute("FechaFinalPago"));
@@ -658,9 +661,11 @@ class Nomi12 {
                     return false;
                 }
             } else {
-                $int_ant = new DateInterval($Antiguedad);
                 $int_diff = date_diff($FechaFinalPago, $a_FechaInicioRelLaboral);
-                $a_diff = $int_diff->format("P%yY%mM%dD");
+                $a_diff = "P";
+                if ($int_diff->y>0) $a_diff .= $int_diff->y."Y";
+                if ($int_diff->m>0) $a_diff .= $int_diff->m."M";
+                if ($int_diff->d>0) $a_diff .= $int_diff->d."D";
                 if ($a_diff != $Antiguedad) {
                     $this->status = "NOM175; El valor del atributo Nomina.Receptor.Antigüedad ($Antiguedad). no cumple con el número de años, meses y días transcurridos entre la FechaInicioRelLaboral y la FechaFinalPago ($a_diff).";
                     $this->codigo = "175 ".$this->status;
@@ -785,7 +790,7 @@ class Nomi12 {
                 $TipoPercepcion = $Percepcion->getAttribute("TipoPercepcion");
                 $ok = $this->Checa_Catalogo("c_TipoPercepcion",$TipoPercepcion);
                 if (!$ok) {
-                    $this->status = "NOM196; El valor del atributo Nomina.Percepciones.Percepcion.TipoPercepcion no cumple con un valor del catálogo c_TipoPercepcion.";
+                    $this->status = "NOM196; El valor del atributo Nomina.Percepciones.Percepcion.TipoPercepcion ($TipoPercepcion) no cumple con un valor del catálogo c_TipoPercepcion.";
                     $this->codigo = "196 ".$this->status;
                     return false;
                 }
@@ -1024,7 +1029,7 @@ class Nomi12 {
                 }
             } else { // NO hubo tipo impuesto
                 if ($TotalImpuestosRetenidos!=null) {
-                    $this->status = "NOM212; Nomina.Percepciones.JubilacionPensionRetiro.TotalImpuestosRetenidos no debe existir ya que no existen deducciones con clave 002 en el atributo.";
+                    $this->status = "NOM212; Nomina.Deducciones.TotalImpuestosRetenidos no debe existir ya que no existen deducciones con clave 002 en el atributo.";
                     $this->codigo = "212 ".$this->status;
                     return false;
                 }
