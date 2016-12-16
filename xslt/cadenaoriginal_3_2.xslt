@@ -46,6 +46,7 @@
     <xsl:include href="ecc11.xslt"/>
     <xsl:include href="ine10.xslt"/>
     <xsl:include href="ComercioExterior10.xslt"/>
+    <xsl:include href="ComercioExterior11.xslt"/>
 
     <xsl:include href="nomina12.xslt"/>
 
