@@ -1124,13 +1124,13 @@ class Nomi12 {
                 $l_CompensacionSaldosAFavor = $OtroPago->getElementsByTagName("CompensacionSaldosAFavor");
                 $largo = $l_CompensacionSaldosAFavor->length;
                 if ($largo==0) { // NO Hay NODO CompensacionSaldosAFavor
-                    if ($TipoOtroPago=="001") {
+                    if ($TipoOtroPago=="004") {
                         $this->status = "NOM218; El nodo CompensacionSaldosAFavor. debe existir, ya que el valor de Nomina.OtrosPagos.OtroPago.TipoOtroPago es 004";
                         $this->codigo = "218 ".$this->status;
                         return false;
                     }
                 } else { // SI Hay NODO CompensacionSaldosAFavor
-                    if ($TipoOtroPago!="001") {
+                    if ($TipoOtroPago!="004") {
                         $this->status = "NOM218; El nodo CompensacionSaldosAFavor. NO debe existir, ya que el valor de Nomina.OtrosPagos.OtroPago.TipoOtroPago NO es 004";
                         $this->codigo = "218 ".$this->status;
                         return false;
