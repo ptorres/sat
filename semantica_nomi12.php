@@ -1,4 +1,13 @@
 <?php
+/*****************************************************************************
+ * semanitica_nomi12.php Validacion de complemento de nomina version 1.2
+ *
+ * 1/nov/2016 Version inicial
+ *
+ * 23/dic/2016 Validacion de igualdad con abs() > 0.001 por error
+ *             de precision. gracias acanas@validacfd
+ *
+ *****************************************************************************/
 error_reporting(E_ALL);
 class Nomi12 {
     var $xml_cfd;
@@ -132,7 +141,7 @@ class Nomi12 {
             }
             $total = (double)$total;
             $a_total = (double)$TotalPercepciones + (double)$TotalOtrosPagos - (double)$TotalDeducciones;
-            if ($total!=$a_total) {
+            if (abs($total-$a_total)>0.001) {
                 $this->status = "NOM109; El valor del atributo total no coincide con la suma Nomina12:TotalPercepciones más Nomina12:TotalOtrosPagos.menos Nomina12:TotalDeducciones";
                 $this->codigo = "109 ".$this->status;
                 return false;
@@ -284,14 +293,14 @@ class Nomi12 {
             }
             $a_total = (double)$TotalPercepciones + (double)$TotalOtrosPagos;
             $valorUnitario = (double)$Concepto->getAttribute("valorUnitario");
-            if ($a_total != $valorUnitario) {
-                $this->status = "NOM129; El valor del atributo.cfdi:Comprobante.Conceptos.Concepto.valorUnitario no coincide con la suma TotalPercepciones más TotalOtrosPagos.";
+            if (abs($a_total-$valorUnitario)>0.001) {
+                $this->status = "NOM129; El valor del atributo.cfdi:Comprobante.Conceptos.Concepto.valorUnitario ($valorUnitario) no coincide con la suma TotalPercepciones más TotalOtrosPagos ($a_total).";
                 $this->codigo = "129 ".$this->status;
                 return false;
             }
             $importe = (double)$Concepto->getAttribute("importe");
-            if ($a_total != $importe) {
-                $this->status = "NOM130; El valor del atributo.cfdi:Comprobante.Conceptos.Concepto.Importe no coincide con la suma TotalPercepciones más TotalOtrosPagos.";
+            if (abs($a_total-$importe)>0.001) {
+                $this->status = "NOM130; El valor del atributo.cfdi:Comprobante.Conceptos.Concepto.importe ($importe) no coincide con la suma TotalPercepciones más TotalOtrosPagos ($a_total).";
                 $this->codigo = "130 ".$this->status;
                 return false;
             }
@@ -411,20 +420,20 @@ class Nomi12 {
             }
             $a_total = (double)$TotalPercepciones + (double)$TotalOtrosPagos;
             $ValorUnitario = (double)$Concepto->getAttribute("ValorUnitario");
-            if ($a_total != $ValorUnitario) {
-                $this->status = "NOM146; El valor del atributo.cfdi:Comprobante.Conceptos.Concepto.ValorUnitario ($ValorUnitario) no coincide con la suma TotalPercepciones ($TotalPercepciones) más TotalOtrosPagos ($TotalOtrosPagos).";
+            if (abs($a_total-$ValorUnitario)>0.001) {
+                $this->status = "NOM146; El valor del atributo.cfdi:Comprobante.Conceptos.Concepto.ValorUnitario ($ValorUnitario) no coincide con la suma ($a_total) de TotalPercepciones ($TotalPercepciones) más TotalOtrosPagos ($TotalOtrosPagos).";
                 $this->codigo = "146 ".$this->status;
                 return false;
             }
             $Importe = (double)$Concepto->getAttribute("Importe");
-            if ($a_total != $Importe) {
-                $this->status = "NOM147; El valor del atributo.cfdi:Comprobante.Conceptos.Concepto.Importe no coincide con la suma TotalPercepciones más TotalOtrosPagos.";
+            if (abs($a_total-$Importe)>0.001) {
+                $this->status = "NOM147; El valor del atributo.cfdi:Comprobante.Conceptos.Concepto.Importe ($Importe) no coincide con la suma ($a_total) TotalPercepciones más TotalOtrosPagos.";
                 $this->codigo = "147 ".$this->status;
                 return false;
             }
             $c_Descuento = (double)$Concepto->getAttribute("Descuento");
-            if ($c_Descuento != $TotalDeducciones) {
-                $this->status = "NOM148; El valor del atributo Comprobante.Conceptos.Concepto,Descuento no es igual a el valor del campo Nomina12:TotalDeducciones.";
+            if (abs($c_Descuento-$TotalDeducciones)>0.001) {
+                $this->status = "NOM148; El valor del atributo Comprobante.Conceptos.Concepto,Descuento ($c_Descuento) no es igual a el valor del campo Nomina12:TotalDeducciones ($TotalDeducciones(.";
                 $this->codigo = "148 ".$this->status;
                 return false;
             }
@@ -481,8 +490,8 @@ class Nomi12 {
             $a_total = (double)$TotalSueldos + 
                        (double)$TotalSeparacionIndemnizacion + 
                        (double)$TotalJubilacionPensionRetiro;
-            if ($TotalPercepciones != $a_total) {
-                $this->status = "NOM157; El valor del atributo Nomina.TotalPercepciones no coincide con la suma TotalSueldos más TotalSeparacionIndemnizacion más TotalJubilacionPensionRetiro del nodo Percepciones.";
+            if (abs($TotalPercepciones-$a_total)>0.001) {
+                $this->status = "NOM157; El valor del atributo Nomina.TotalPercepciones ($TotalPercepciones) no coincide con la suma ($a_total) TotalSueldos más TotalSeparacionIndemnizacion más TotalJubilacionPensionRetiro del nodo Percepciones.";
                 $this->codigo = "157 ".$this->status;
                 return false;
             }
@@ -499,7 +508,7 @@ class Nomi12 {
             $TotalOtrasDeducciones = $Deducciones->getAttribute("TotalOtrasDeducciones");
             $TotalImpuestosRetenidos = $Deducciones->getAttribute("TotalImpuestosRetenidos");
             $a_total = (double)$TotalOtrasDeducciones + (double)$TotalImpuestosRetenidos;
-            if ($TotalDeducciones != $a_total) {
+            if (abs($TotalDeducciones-$a_total)>0.001) {
                 $this->status = "NOM159; El valor del atributo Nomina.TotalDeducciones ($TotalDeducciones) no coincide con la suma ($a_total) de los atributos TotalOtrasDeducciones ($TotalOtrasDeducciones) más TotalImpuestosRetenidos ($TotalImpuestosRetenidos) del elemento Deducciones.";
                 $this->codigo = "159 ".$this->status;
                 return false;
@@ -521,8 +530,8 @@ class Nomi12 {
                 $OtroPago=$l_OtroPago->item($i);
                 $suma += (double)$OtroPago->getAttribute("Importe");
             }
-            if ((double)$TotalOtrosPagos != $suma) {
-                $this->status = "NOM160; El valor del atributo Nomina.TotalOtrosPagos no esta registrado o no coincide con la suma de los atributos Importe de los nodos nomina12:OtrosPagos:OtroPago.";
+            if (abs((double)$TotalOtrosPagos-$suma)>0.001) {
+                $this->status = "NOM160; El valor del atributo Nomina.TotalOtrosPagos ($TotalOtrosPagos) no esta registrado o no coincide con la suma de los atributos Importe de los nodos nomina12:OtrosPagos:OtroPago ($suma).";
                 $this->codigo = "160 ".$this->status;
                 return false;
             }
@@ -589,13 +598,6 @@ class Nomi12 {
         if ($n_E_RegistroPatronal == null) {
             /*
                 Si no hay patronal no se valida estos
-            if ($NumSeguridadSocial != null ||
-                $FechaInicioRelLaboral != null || $Antiguedad != null ||
-                $RiesgoPuesto != null || $SalarioDiarioIntegrado != null) {
-                $this->status = "NOM164; Uno de los atributos nomina12:Receptor:NumSeguridadSocial ($NumSeguridadSocial), nomina12:Receptor:FechaInicioRelLaboral ($FechaInicioRelLaboral), nomina12:Receptor:Antigüedad ($Antiguedad),  nomina12:Receptor:RiesgoPuesto ($RiesgoPuesto) y nomina12:Receptor:SalarioDiarioIntegrado ($SalarioDiarioIntegrado) existe.";
-                $this->codigo = "164 ".$this->status;
-                return false;
-                }
              */
         } else { // SI si hay registro patronal debe de estar los demas
             if ($NumSeguridadSocial == null || 
@@ -665,7 +667,7 @@ class Nomi12 {
                 $a_diff = "P";
                 if ($int_diff->y>0) $a_diff .= $int_diff->y."Y";
                 if ($int_diff->m>0) $a_diff .= $int_diff->m."M";
-                if ($int_diff->d>0) $a_diff .= $int_diff->d."D";
+                $a_diff .= $int_diff->d."D";
                 if ($a_diff != $Antiguedad) {
                     $this->status = "NOM175; El valor del atributo Nomina.Receptor.Antigüedad ($Antiguedad). no cumple con el número de años, meses y días transcurridos entre la FechaInicioRelLaboral y la FechaFinalPago ($a_diff).";
                     $this->codigo = "175 ".$this->status;
@@ -860,23 +862,24 @@ class Nomi12 {
                        (double)$TotalSeparacionIndemnizacion+
                        (double)$TotalJubilacionPensionRetiro;
             $a_suma2 = (double)$TotalGravado+(double)$TotalExento;
-            if ($a_suma1 != $a_suma2) {
+            if (abs($a_suma1-$a_suma2)>0.001) {
                 $this->status = "NOM189; La suma de los valores de los atributos TotalSueldos más TotalSeparacionIndemnizacion más TotalJubilacionPensionRetiro ($a_suma1) no es igual a la suma de los valores de los atributos TotalGravado más TotalExento ($a_suma2).";
                 $this->codigo = "189 ".$this->status;
                 return false;
             }
-            if ((double)$TotalGravado != $t_gravado) {
-                $this->status = "NOM193; El valor del atributo Nomina.Percepciones.TotalGravado, no es igual a la suma de los atributos ImporteGravado de los nodos Percepcion.";
+            if (abs((double)$TotalGravado-$t_gravado)>0.001) {
+                $this->status = "NOM193; El valor del atributo Nomina.Percepciones.TotalGravado ($TotalGravado), no es igual a la suma de los atributos ImporteGravado de los nodos Percepcion ($t_gravado).";
                 $this->codigo = "193 ".$this->status;
                 return false;
             }
-            if ((double)$TotalExento != $t_exento) {
-                $this->status = "NOM194; El valor del atributo Nomina.Percepciones.TotalExento, no es igual a la suma de los atributos ImporteExento de los nodos Percepcion.";
+            if (abs((double)$TotalExento-$t_exento)>0.001) {
+                $this->status = "NOM194; El valor del atributo Nomina.Percepciones.TotalExento ($TotalExento), no es igual a la suma de los atributos ImporteExento de los nodos Percepcion ($t_exento).";
                 $this->codigo = "194 ".$this->status;
                 return false;
             }
-            if ($TotalSueldos != null && (double)$TotalSueldos != $t_sueldo) {
-                $this->status = "NOM190; El valor del atributo Nomina.Percepciones.TotalSueldos , no es igual a la suma de los atributos ImporteGravado e ImporteExento donde la clave expresada en el atributo TipoPercepcion es distinta de 022 Prima por Antigüedad, 023 Pagos por separación, 025 Indemnizaciones, 039 Jubilaciones, pensiones o haberes de retiro en una exhibición y 044 Jubilaciones, pensiones o haberes de retiro en parcialidades.";
+            if ($TotalSueldos != null && 
+                abs((double)$TotalSueldos-$t_sueldo)>0.001) {
+                $this->status = "NOM190; El valor del atributo Nomina.Percepciones.TotalSueldos ($TotalSueldos), no es igual a la suma de los atributos ImporteGravado e ImporteExento donde la clave expresada en el atributo TipoPercepcion es distinta de 022 Prima por Antigüedad, 023 Pagos por separación, 025 Indemnizaciones, 039 Jubilaciones, pensiones o haberes de retiro en una exhibición y 044 Jubilaciones, pensiones o haberes de retiro en parcialidades ($t_sueldo).";
                 $this->codigo = "190 ".$this->status;
                 return false;
             }
@@ -886,7 +889,7 @@ class Nomi12 {
                 return false;
             }
             /* TODO : Falta ejemplo NO se como hacer que llegue por aqui */
-            if ((double)$TotalJubilacionPensionRetiro != $t_jubilacion) {
+            if (abs((double)$TotalJubilacionPensionRetiro-$t_jubilacion)>0.001) {
                 $this->status = "NOM192; El valor del atributo Nomina.Percepciones.TotalJubilacionPensionRetiro, no es igual a la suma de los atributos ImporteGravado e importeExento donde la clave expresada en el atributo TipoPercepcion es igual a 039(Jubilaciones, pensiones o haberes de retiro en una exhibición)  ó 044 (Jubilaciones, pensiones o haberes de retiro en parcialidades).";
                 $this->codigo = "192 ".$this->status;
                 return false;
@@ -897,13 +900,6 @@ class Nomi12 {
                 $this->codigo = "197 ".$this->status;
                 return false;
             }
-            /* Ya no se valida
-            if (!$hay_sueldo && $TotalSueldos != null) {
-                $this->status = "NOM197; TotalSueldos, no debe existir. Ya que la clave expresada en TipoPercepcion es 022, 023, 025, 039 y 044";
-                $this->codigo = "197 ".$this->status;
-                return false;
-            }
-*/
             if ($hay_separacion && $TotalSeparacionIndemnizacion == null) {
                 $this->status = "NOM198; TotalSeparacionIndemnizacion debe existir. Ya que la clave expresada en TipoPercepcion es 022 ó 023 ó 025.";
                 $this->codigo = "198 ".$this->status;
@@ -1022,8 +1018,8 @@ class Nomi12 {
                 }
             } // foreach deducc
             if ($hay_2) { // Si hubo concepto deduccion impuesto
-                if ((double)$TotalImpuestosRetenidos!=$t_impu) {
-                    $this->status = "NOM211; El valor en el atributo Nomina.Deducciones.TotalImpuestosRetenidos no es igual a la suma de los atributos Importe de las deducciones que tienen expresada la clave 002 en el atributo TipoDeduccion.";
+                if (abs((double)$TotalImpuestosRetenidos-$t_impu)>0.001) {
+                    $this->status = "NOM211; El valor en el atributo Nomina.Deducciones.TotalImpuestosRetenidos ($TotalImpuestosRetenidos) no es igual a la suma de los atributos Importe de las deducciones que tienen expresada la clave 002 en el atributo TipoDeduccion ($t_impu).";
                     $this->codigo = "211 ".$this->status;
                     return false;
                 }
@@ -1069,9 +1065,9 @@ class Nomi12 {
                 $ImporteMonetario = $Incapacidad->getAttribute("ImporteMonetario");
                 $suma += (double)$ImporteMonetario;
             }
-            if ($suma!=$t_incapacidad) { 
+            if (abs($suma-$t_incapacidad)>0.001) { 
                 if ($hay_14) {
-                    $this->status = "NOM207; La suma de los campos ImporteMonetario debe ser igual a la suma de los valores ImporteGravado e ImporteExento de la percepción, Ya que la clave expresada en el atributo TipoPercepcion es 014.";
+                    $this->status = "NOM207; La suma de los campos ImporteMonetario ($suma) debe ser igual a la suma de los valores ImporteGravado e ImporteExento de la percepción ($t_incapacidad), Ya que la clave expresada en el atributo TipoPercepcion es 014.";
                     $this->codigo = "207 ".$this->status;
                     return false;
                 } else {
