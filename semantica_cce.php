@@ -544,8 +544,8 @@ class Cce {
                             return false;
                         }
                     }
-                    $aux = (double)$cantidad * (double)$valorUnitario;
-                    if (abs($aux - $importe) > 0.001) {
+                    $aux = round((double)$cantidad * (double)$valorUnitario,2);
+                    if (abs($aux - $importe) > 0.0001) {
                         $this->status = "El valor del atributo cfdi:Comprobante:Conceptos:Concepto:importe de cada concepto registrado, debe ser igual al valor del atributo cfdi:Comprobante:Conceptos:Concepto:cantidad multiplicado por el valor del atributo cfdi:Comprobante:Conceptos:Concepto:valorUnitario redondeado a la cantidad de decimales que soporte la moneda en la que se expresa el CFDI.";
                         $this->codigo = "185 ".$this->status;
                         return false;
