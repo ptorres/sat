@@ -364,6 +364,9 @@ function valida_semantica() {
      if (strpos($texto,"cce:ComercioExterior")!==FALSE) {
          semantica_cce();
      }
+     if (strpos($texto,"cce11:ComercioExterior")!==FALSE) {
+         semantica_cce11();
+     }
      if (strpos($texto,"nomina12:Nomina")!==FALSE) {
          semantica_nomi12();
      }
@@ -387,6 +390,17 @@ function semantica_cce() {
     global $xml, $conn;
     echo "<h2>Semantica CCE</h2>";
     require_once("semantica_cce.php");
+    $cce = new Cce();
+    $cce->valida($xml,$conn);
+    echo "<h2>$cce->codigo</h2>";
+    echo "<hr/>";
+}
+// }}} Valida semantica cce
+// {{{ Valida semantica cce11
+function semantica_cce11() {
+    global $xml, $conn;
+    echo "<h2>Semantica CCE Version 1.1</h2>";
+    require_once("semantica_cce11.php");
     $cce = new Cce();
     $cce->valida($xml,$conn);
     echo "<h2>$cce->codigo</h2>";

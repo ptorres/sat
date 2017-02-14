@@ -14,8 +14,15 @@ create table pac_catalogos (
     c_Estado varchar(30),           -- Codigo de estado asociado
     c_Municipio varchar(30),        -- Codigo de municipio asociado
     c_Localidad varchar(30),        -- Codigo de Localidad asociado
-    descripcion varchar(120),        -- Descripcion (informativa)
-    decimales smallint,             -- decimales (asociados)
+    descripcion varchar(2048),      -- Descripcion (informativa)
+    decimales int,                  -- decimales (asociados)
+    porcentaje smallint,            -- porcentaje (asociados)
+    impuestos varchar(255),         -- impuestos 
+    complementos varchar(255),      -- complementos 
+    agrupaciones varchar(30),       -- Agrupaciones de paises
+    unidad varchar(30),             -- Unidad de medidad de la fracion
+    importacion varchar(30),        -- Importable
+    exportacion varchar(30),        -- Exportable
     primary key (cata_cata, cata_llave, cata_prm1, cata_prm2)
 );
 
