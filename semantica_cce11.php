@@ -73,7 +73,7 @@ class Cce11 {
             $aux = "/^$regex$/A";
             $ok = preg_match($aux,$fecha);
             if (!$ok) {
-                $this->status = "CCE102 El atributo cfdi:Comprobante:fecha no cumple con el formato requerido.";
+                $this->status = "CCE102 El atributo cfdi:Comprobante:fecha no cumple con el patrón requerido.";
                 $this->codigo = "102 ".$this->status;
                 return false;
             }
@@ -87,7 +87,7 @@ class Cce11 {
             }
             $subTotal = round((double)$Comprobante->getAttribute("subTotal"),2);
             if (abs($subTotal - $suma) > 0.001) {
-                $this->status = "CCE103 El valor del atributo cfdi:subTotal {$subTotal} debe de ser igual a la suma de los atributos importe {$suma} por cada [Concepto]";
+                $this->status = "CCE103 El atributo cfdi:Comprobante:subtotal no coincide con la suma de los atributos importe de los nodos Concepto.";
                 $this->codigo = "103 ".$this->status;
                 return false;
             }
@@ -281,7 +281,7 @@ class Cce11 {
                     }
                 }
                 $c_CP = $this->Obten_Catalogo("c_CP", $codigoPostal);
-                if ($c_CP===FALSE) {
+                if (sizeof($c_CP)==0) {
                     if ($nombre=="cfdi:DomicilioFiscal") {
                         $this->status = 'CCE128 El atributo cfdi:Comprobante:Emisor:DomicilioFiscal:codigoPostal debe contener una clave del catálogo de catCFDI:c_CodigoPostal, donde la columna clave de c_Estado debe ser igual a la clave registrada en el atributo estado, la columna clave de c_Municipio debe ser igual a la clave registrada en el atributo municipio, y si existe el atributo de localidad, la columna clave de c_Localidad debe ser igual a la clave registrada en el atributo localidad si el nodo es generado.';
                         $this->codigo = "128 ".$this->status;
@@ -297,7 +297,7 @@ class Cce11 {
                 $c_Localidad = trim($c_CP["c_localidad"]);
                 if ($c_Estado!=$estado ||
                     $c_Municipio!=$municipio ||
-                    ($localidad!="" && $c_Localidad!==$localidad)) {
+                    ($localidad!="" && $c_Localidad!="" && $c_Localidad!==$localidad)) {
                     if ($nombre=="cfdi:DomicilioFiscal") {
                         $this->status = 'CCE128 El atributo cfdi:Comprobante:Emisor:DomicilioFiscal:codigoPostal debe contener una clave del catálogo de catCFDI:c_CodigoPostal, donde la columna clave de c_Estado debe ser igual a la clave registrada en el atributo estado, la columna clave de c_Municipio debe ser igual a la clave registrada en el atributo municipio, y si existe el atributo de localidad, la columna clave de c_Localidad debe ser igual a la clave registrada en el atributo localidad si el nodo es generado.';
                         $this->codigo = "128 ".$this->status;
@@ -490,7 +490,7 @@ class Cce11 {
            }
            $Receptor = $Comprobante->getElementsByTagName('Receptor')->item(0);
            $rfcReceptor = $Receptor->getAttribute("Rfc");
-           if ($TipoDeComprobante=="T" && $MotivoTraslado=="02") {
+           if ($TipoDeComprobante!="T" && $MotivoTraslado!="02") {
                if ($rfcReceptor!="XEXX010101000") {
                   $this->status = 'CCE150 El atributo cfd:Comprobante:Receptor:Rfc no tiene el valor "XEXX010101000" y el TipoDeComprobante tiene un valor distinto de "T" y MotivoTraslado un valor distinto de "02".';
                   $this->codigo = "150 ".$this->status;
@@ -719,7 +719,7 @@ class Cce11 {
                     return false;
                 }
                 $c_CP = $this->Obten_Catalogo("c_CP", $codigoPostal);
-                if ($c_CP===FALSE) {
+                if (sizeof($c_CP)==0) {
                     $this->status = "CCE218 Error no clasidficado. $codigoPostal  no existe";
                     $this->codigo = "218 ".$this->status;
                     return false;
@@ -1118,7 +1118,7 @@ class Cce11 {
             $tipo = ($TipoCambio + (pow(10,-1*$dec_tipo)/2) - pow(10,-12))/
                     ($TipoCambioUSD - (pow(10,-1*$dec_tipo)/2));
             $sup = round(($impo_conc + (pow(10,-1*$dec_moneda)/2)-pow(10,-12))*$tipo,$dec_moneda,PHP_ROUND_HALF_UP);
-            // echo "noid=$noid impo_conc=$impo_conc inf=$inf sup=$sup impo_merc=$impo_merc\n";
+             //echo "noid=$noid impo_conc=$impo_conc inf=$inf sup=$sup impo_merc=$impo_merc\n";
             if ($impo_merc < $inf || $impo_merc > $sup) {
                 $this->status = 'CCE205 La suma de los campos cce11:ComercioExterior:Mercancias:Mercancia:ValorDolares distintos de "0" y "1" de todas las mercancías que tengan el mismo NoIdentificacion y éste sea igual al NoIdentificacion del concepto debe ser mayor o igual al valor mínimo y menor o igual al valor máximo calculado.';
                 $this->codigo = "205 ".$this->status;
@@ -1214,7 +1214,7 @@ class Cce11 {
                 }
             }
         }
-        // echo "cantidad_0=$cantidad_0 cantidad_3=$cantidad_3\n";
+        // echo "cantidad_0=$cantidad_0 cantidad_1=$cantidad_1 cantidad_3=$cantidad_3\n";
         if ($cantidad_1 > 0) {
             $this->status = 'CCE213 Los atributos CantidadAduana, UnidadAduana y ValorUnitarioAduana deben existir en los registros involucrados si se ha registrado alguno de ellos, si existe más de un concepto con el mismo NoIdentificacion o si existe más de una mercancía con el mismo NoIdentificacion.';
             $this->codigo = "213 ".$this->status;
@@ -1267,10 +1267,16 @@ class Cce11 {
                             //echo "impo=$impo\n";
                             if ($hash_merc[$NoIdentificacion]==$impo) {
                                 // Para ques olo busque si solo hay un concepto para esa mercancia
-                                $aux = round(($importe * $TipoCambio) / $TipoCambioUSD,2);
-                                if (abs($impo - $aux) > 0.001) {
+                                $dec_tipo = $this->cantidad_decimales($TipoCambioUSD);
+                                $tipo_i = ($TipoCambio - (pow(10,-1*$dec_tipo)/2))/
+                                          ($TipoCambioUSD + (pow(10,-1*$dec_tipo)/2) - pow(10,-12));
+                                $inf = round(($importe - (pow(10,-1*$dec_moneda)/2))*$tipo_i,$dec_moneda,PHP_ROUND_HALF_DOWN);
+                                $tipo_s = ($TipoCambio + (pow(10,-1*$dec_tipo)/2) - pow(10,-12))/
+                                          ($TipoCambioUSD - (pow(10,-1*$dec_tipo)/2));
+                                $sup = round(($importe + (pow(10,-1*$dec_moneda)/2)-pow(10,-12))*$tipo_s,$dec_moneda,PHP_ROUND_HALF_UP);
+                                if ($impo < $inf || $impo > $sup) {
                                     $ok = false;
-                                    //echo "aux=$aux impo$impo importe=$importe TipoCambio=$TipoCambio TipoCambioUSD=$TipoCambioUSD\n";
+                                    // echo "inf=$inf sup=$sup impo=$impo importe=$importe TipoCambio=$TipoCambio TipoCambioUSD=$TipoCambioUSD tipo_i=$tipo_i tipo_s=$tipo_s dec_tipo=$dec_tipo dec_moneda=$dec_moneda\n";
                                 }
                             }
                         }
