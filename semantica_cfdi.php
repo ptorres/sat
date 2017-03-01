@@ -156,8 +156,8 @@ class Sem_CFDI {
                 return false;
             }
         } else {
-            $aux = $SubTotal - $Descuento + $t_impuestos;
-            if ($Total != $aux) {
+            $aux = (double)$SubTotal - (double)$Descuento + (double)$t_impuestos;
+            if (abs($Total-$aux)>0.001) {
                 $this->status = "CFD111; El Total ($Total) debe de ser igual que la suma del SubTotal menos Descuento mas los impuestos ($aux).";
                 $this->codigo = "111 ".$this->status;
                 return false;
@@ -660,7 +660,7 @@ class Sem_CFDI {
                     return false;
                 }
             }
-            if (abs($t_rete-$TotalImpuestosRetenidos)>0.001) {
+            if (abs($t_rete-(double)$TotalImpuestosRetenidos)>0.001) {
                 $this->status = "CFDI237 EL valor del Atribute TotalImpuestosRetenidos ($TotalImpuestosRetenidos) debe de ser la suma de los atributos hijos Retencion:Importe ($t_rete).";
                 $this->codigo = "237 ".$this->status;
                 return false;
@@ -712,6 +712,8 @@ class Sem_CFDI {
             //
         }
         // }}} Impuestos
+        $this->status = "CFDI0 Validacion correcta semantica cfdi 3.3";
+        $this->codigo = "0 ".$this->status;
         return $ok;
     }
     // {{{ Checa_Catalogo
