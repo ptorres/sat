@@ -47,8 +47,8 @@
   <xsl:include href="ine10.xslt"/>
   <xsl:include href="ine11.xslt"/>
   <xsl:include href="nomina12.xslt"/>
-  <!-- <xsl:include href="http://www.sat.gob.mx/sitio_internet/cfd/pagos/Pagos.xslt"/> -->
-  <!-- <xsl:include href="http://www.sat.gob.mx/sitio_internet/cfd/ComercioExterior/ComercioExterior11.xslt"/> -->
+  <xsl:include href="Pagos10.xslt"/> 
+  <xsl:include href="ComercioExterior11.xslt"/>
   
   <!-- Aquí iniciamos el procesamiento de la cadena original con su | inicial y el terminador || -->
   <xsl:template match="/">|<xsl:apply-templates select="/cfdi:Comprobante"/>||</xsl:template>

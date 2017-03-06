@@ -339,6 +339,9 @@ function valida_semantica() {
      if (strpos($texto,"nomina12:Nomina")!==FALSE) {
          semantica_nomi12();
      }
+     if (strpos($texto,"pago10:Pagos")!==FALSE) {
+         semantica_pago10();
+     }
      if (strpos($texto,"cfdi:Comprobante")!==FALSE) {
          semantica_cfdi();
      }
@@ -387,6 +390,17 @@ function semantica_nomi12() {
     echo "<hr/>";
 }
 // }}} Valida semantica nomi12
+// {{{ Valida semantica pago10
+function semantica_pago10() {
+    global $xml, $conn;
+    echo "<h2>Semantica Pagos 1.0</h2>";
+    require_once("semantica_pagos10.php");
+    $pago = new Pagos10();
+    $pago->valida($xml,$conn);
+    echo "<h2>$pago->codigo</h2>";
+    echo "<hr/>";
+}
+// }}} Valida semantica pago10
 // {{{ Valida semantica cfdi
 function semantica_cfdi() {
     global $xml, $conn;
