@@ -211,9 +211,17 @@ if ($tipo=="retenciones") {
 
 $TFD = $root->getElementsByTagName('TimbreFiscalDigital')->item(0);
 if ($TFD!=null) {
-    $data['sellocfd'] = $TFD->getAttribute("selloCFD");
-    $data['sellosat'] = $TFD->getAttribute("selloSAT");
-    $data['no_cert_sat'] = $TFD->getAttribute("noCertificadoSAT");
+    $data['version_tfd'] = $TFD->getAttribute("Version");
+    if ($data['version_tfd'] == "") $data['version_tfd'] =  $TFD->getAttribute("version");
+    if ($data['version_tfd'] == "1.0") {
+        $data['sellocfd'] = $TFD->getAttribute("selloCFD");
+        $data['sellosat'] = $TFD->getAttribute("selloSAT");
+        $data['no_cert_sat'] = $TFD->getAttribute("noCertificadoSAT");
+    } else {
+        $data['sellocfd'] = $TFD->getAttribute("SelloCFD");
+        $data['sellosat'] = $TFD->getAttribute("SelloSAT");
+        $data['no_cert_sat'] = $TFD->getAttribute("NoCertificadoSAT");
+    }
     $data['uuid'] = $TFD->getAttribute("UUID");
 } else {
     $data['sellocfd'] = null;
@@ -227,67 +235,28 @@ if ($TFD!=null) {
 
 
 ////////////////////////////////////////////////////////////////////////////
-//  Conexion a la base de datos para leer la lista de CSD
-//  autorizados por el SAT
-//
-//  http://www.lacorona.com.mx/fortiz/sat/valida.php  para ver estas tablas
+//  Conexion a la base de datos para leer los catalogos de claves
+//   y el cache de certificados   
 //
 //  myconn es una conexion a MI BASE DE DATOS
-//    yo uso adodb http://phplens.com/lens/adodb/docs-adodb.htm
+//    yo uso adodb http://adodb.org/dokuwiki/doku.php
+//                 https://github.com/ADOdb/ADOdb
 //    pero ya los parametros de conexion a mi base de datos no te digo ;)
 require_once "myconn/myconn.inc.php";
 $conn=myconn();
 ////////////////////////////////////////////////////////////////////////////
 
-valida_certificado();
-valida_xsd();
+valida_xsd(); // esquema o 'sintaxis'
 if ($data['tipo']=="cfdi") { // por lo pronto semantica solo para CFDI
     valida_semantica();
 }
-valida_sello();
+valida_sello(); // sello del comprobante
 if ($data['sellosat']!="") {
-   valida_sello_tfd();
+   valida_sello_tfd(); // sello del timbre
    if ($data['tipo']=="cfdi") {
         valida_en_sat(); // Por lo pronto retenciones no se valida en SAT
    }
 }
-
-// {{{ Valida certificado
-//
-//  ftp://ftp2.sat.gob.mx/agti_servicio_ftp/verifica_comprobante_ftp/CSD.txt
-//
-//      Table "public.cfdcsd"
-//      Column      |            Type             | Modifiers 
-//------------------+-----------------------------+-----------
-// no_serie         | character(20)               | 
-// fec_inicial_cert | timestamp without time zone | 
-// fec_final_cert   | timestamp without time zone | 
-// rfc              | character(13)               | 
-// edo_certificado  | character(1)                | 
-//    Indexes:
-// "i11_39773_10052" UNIQUE, btree (no_serie)
-// "cfdcsd_rfc" btree (rfc, fec_inicial_cert)
-//
-function valida_certificado() {
-global $data,$conn;
-$qry = "select * from cfdcsd where RFC='".$data['rfc']."' and 
-                                   no_serie='".$data['no_cert']."'";
-$rowcsd = $conn->getrow($qry);
-if (trim($rowcsd['rfc'])==$data['rfc'] && 
-    trim($rowcsd['no_serie'])==$data['no_cert']) {
-    $fini=$rowcsd['fec_inicial_cert'];
-    $ffin=$rowcsd['fec_final_cert'];
-    echo "<h3>Certificado valido del $fini al $ffin</h3>";
-} else {
-    if (strlen($data['rfc'])==13) {
-        echo "<h3><font color=orange>CSD no encontrado, pero puede ser FIEL ....</font></h3>";
-    } else { 
-        echo "<h3>Certificado no autorizado en CSD.txt</h3>";
-    }
-}
-echo "<hr>";
-}
-// }}} 
 // {{{ Valida_XSD
 function valida_xsd() {
     /*
@@ -491,7 +460,7 @@ if ($data['tipo']=="retenciones") {
           echo "3.3\n";
           $xsl->load('xslt/cadenaoriginal_3_3.xslt');
           echo "sha1 \n";
-          $algo = OPENSSL_ALGO_SHA1;
+          $algo = OPENSSL_ALGO_SHA256;
           break;
       default:
           echo "version incorrecta ".$data['tipo']." ".$data['version']."\n";
@@ -506,6 +475,9 @@ echo "Cadena Original<br><p align=left>$cadena</p><br>";
 if ($algo==OPENSSL_ALGO_SHA1) {
     $sha1=sha1($cadena);
     echo "hash sha1=$sha1<br>";
+} elseif ($algo==OPENSSL_ALGO_SHA256) {
+    $sha256=hash("sha256",$cadena);
+    echo "hash sha256=$sha256<br>";
 } else {
     $md5=md5($cadena);
     echo "hash md5=$md5<br>";
@@ -547,7 +519,7 @@ if (!$pubkeyid) {
     $pubkeyid = openssl_get_publickey(openssl_x509_read($cert));
 
 }
-valida_ca(openssl_x509_read($cert));
+valida_pubkey(openssl_x509_read($cert));
 $ok = openssl_verify($cadena, 
                      base64_decode($data['sell']), 
                      $pubkeyid, 
@@ -569,8 +541,8 @@ if ($serial!=$data['no_cert']) {
 
 }
 // }}} Valida Sello
-// {{{ Valida CA (Autoridad Certificadora)
-function valida_ca($pubkeyid) {
+// {{{ Valida CA (Autoridad Certificadora) certificado raiz sea del sat
+function valida_pubkey($pubkeyid) {
     $ca = array(__DIR__."/raiz/");
     $ok = openssl_x509_checkpurpose($pubkeyid, X509_PURPOSE_ANY, $ca);
     if ($ok) {
@@ -603,7 +575,13 @@ $xml_tfd = new DOMDocument();
 $ok = $xml_tfd->loadXML($texto_tfd);
 
 $xsl = new DOMDocument;
-$xsl->load('xslt/cadenaoriginal_TFD_1_0.xslt');
+if ($data['version_tfd'] == "1.0") {
+    $xsl->load('xslt/cadenaoriginal_TFD_1_0.xslt');
+    $alg = OPENSSL_ALGO_SHA1;
+} else {
+    $xsl->load('xslt/cadenaoriginal_TFD_1_1.xslt');
+    $alg = OPENSSL_ALGO_SHA256;
+}
 $proc = new XSLTProcessor;
 $proc->importStyleSheet($xsl); 
 
@@ -619,11 +597,12 @@ $pem=get_sat_cert($data['no_cert_sat']);
 
 $cert = "-----BEGIN CERTIFICATE-----\n".chunk_split($pem,64)."-----END CERTIFICATE-----\n";
 // file_put_contents("/tmp/llave.cer.pem",$cert);
+valida_pubkey(openssl_x509_read($cert));
 $pubkeyid = openssl_get_publickey(openssl_x509_read($cert));
 $ok = openssl_verify($cadena, 
                      base64_decode($data['sellosat']), 
                      $pubkeyid, 
-                     OPENSSL_ALGO_SHA1);
+                     $alg);
 if ($ok == 1) {
     echo "<h3>Sello TFD ok</h3>";
 } else {

@@ -36,7 +36,8 @@ class Sem_CFDI {
         // $margen_inf = new DateInterval("PT1H"); // Debe de ser una Hora
         $margen_inf = new DateInterval("P1Y"); // Ponemos un anio para probar
         $a_inf = date_sub($a_hoy, $margen_inf);
-        $margen_sup = new DateInterval("PT1H"); // 1 Hora
+        //$margen_sup = new DateInterval("PT1H"); // 1 Hora
+        $margen_sup = new DateInterval("P1Y"); // 
         $a_hoy = new DateTime();
         $a_sup = date_add($a_hoy, $margen_sup);
         if ($a_Fecha < $a_inf) {
