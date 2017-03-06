@@ -459,7 +459,7 @@ if ($data['tipo']=="retenciones") {
       case "3.3":
           echo "3.3\n";
           $xsl->load('xslt/cadenaoriginal_3_3.xslt');
-          echo "sha1 \n";
+          echo "sha256 \n";
           $algo = OPENSSL_ALGO_SHA256;
           break;
       default:
