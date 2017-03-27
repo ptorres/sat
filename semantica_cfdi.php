@@ -52,7 +52,7 @@ class Sem_CFDI {
             return false;
         }
         $xsl = new DOMDocument("1.0","UTF-8");
-        $xsl->load(__DIR__."/cadenaoriginal_3_3.xslt");
+        $xsl->load(__DIR__."/xslt/cadenaoriginal_3_3.xslt");
         $proc = new XSLTProcessor();
         $proc->importStyleSheet($xsl);
         $paso = new DOMDocument("1.0","UTF-8");
@@ -230,14 +230,14 @@ class Sem_CFDI {
                 }
             }
         }
-        $aux = $SubTotal - $Descuento + $t_impuestos;
+        $aux = (double)$SubTotal - (double)$Descuento + $t_impuestos;
         if (abs($Total - $aux)>0.001) {
             $this->status = "CFD33118 El campo Total no corresponde con la suma del subtotal, menos los descuentos aplicables, más las contribuciones recibidas (impuestos trasladados - federales o locales, derechos, productos, aprovechamientos, aportaciones de seguridad social, contribuciones de mejoras) menos los impuestos retenidos.";
             $this->codigo = "33118 ".$this->status;
             return false;
         }
         $Limite_superior = 20000000; // TODO : Leerlo del SAT
-        if ($Total > $Limite_superior) {
+        if ((double)$Total > $Limite_superior) {
             $req_conf = true;
             if ($Confirmacion == null) {
                 $this->status = "CFD33119 Cuando el valor del campo Total se encuentre fuera de los límites establecidos, debe existir el campo Confirmacion";
