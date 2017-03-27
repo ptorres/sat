@@ -147,11 +147,11 @@ class Sem_CFDI {
                 // {{{ Hay Impuestos
                 $Traslados = $Impuestos->item(0)->getElementsByTagName("Traslado");
                 foreach ($Traslados as $Traslado) {
-                    $t_impuestos -= (double)$Traslado->getAttribute("Importe");
+                    $t_impuestos += (double)$Traslado->getAttribute("Importe");
                 }
                 $Retenciones = $Impuestos->item(0)->getElementsByTagName("Retencion");
                 foreach ($Retenciones as $Retencion) {
-                    $t_impuestos += (double)$Retencion->getAttribute("Importe");
+                    $t_impuestos -= (double)$Retencion->getAttribute("Importe");
                 }
             } // }}} Impuestos->length > 0
         } // for cada concepto
