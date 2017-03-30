@@ -111,6 +111,7 @@ class Sem_CFDI {
             return false;
         }
         $dec_moneda = (int)$c_Moneda["decimales"];
+        $porc_moneda = (int)$c_Moneda["porcentaje"];
         $fac_moneda = pow(10, $dec_moneda);
         $dec = $this->cantidad_decimales($SubTotal);
         if ($dec > $dec_moneda) {
@@ -177,7 +178,7 @@ class Sem_CFDI {
         if ($TipoDeComprobante=="I" || $TipoDeComprobante=="E" ||
             $TipoDeComprobante=="N") {
              if ($hay_Descuento) {
-                if (abs($Descuento-$t_Descuento)>0.001) {
+                if (abs((double)$Descuento-$t_Descuento)>0.001) {
                     $this->status = "CFDI106; El Descuento ($Descuento) no es igual a la suma ($t_Descuento) de los Descuentos de los Conceptos.";
                     $this->codigo = "106 ".$this->status;
                     return false;
@@ -217,10 +218,10 @@ class Sem_CFDI {
                 $this->codigo = "33116 ".$this->status;
                 return false;
             }
-            /* TODO: Validar limites del tipo de cambio contra
-             * lo publicado */
-            $inf = 15.00;
-            $sup = 25.00;
+            $oficial = 20; // TODO: leer del lugar oficial
+            $inf = $oficial * (1 - $porc_moneda/100);
+            $sup = $oficial * (1 + $porc_moneda/100);
+            // echo "oficial=$oficial inf=$inf sup=$sup";
             if ($TipoCambio < $inf || $TipoCambio > $sup)  {
                 $req_conf = true;
                 if ($Confirmacion == null) {
@@ -437,12 +438,38 @@ class Sem_CFDI {
                 $this->codigo = "33142 ".$this->status;
                 return false;
             }
-            // TODO: Buscar los complementos que diga el prod
             $compls = $c_ProdServ["complementos"];
-            // TODO: Validar 33143
-            // TODO: Buscar los impuestos que diga el prod
+            if ($compls != "") {
+                $ok=false;
+                $lista = $Complemento->item(0)->childNodes;
+                foreach ($lista as $nodo) {
+                    $nombre = explode(":",$nodo->nodeName);
+                    if ($nombre[0]==$compls) $ok = true;
+                }
+                if (!$ok) {
+                    $this->status = "CFDI33143 No existe el complemento requerido para el valor de ClaveProdServ.";
+                    $this->codigo = "33143 ".$this->status;
+                    return false;
+                }
+            }
             $impus = $c_ProdServ["impuestos"];
-            // TODO: Validar 33144
+            if ($impus != "") {
+                $ok=false;
+                $Impuestos = $Concepto->getElementsByTagName('Impuestos');
+                if ($Impuestos->length>0) {
+                    $Traslados = $Impuestos->item(0)->getElementsByTagName('Traslado');
+                    for ($j=0; $j<$Traslados->length; $j++) {
+                        $Traslado=$Traslados->item($j);
+                        $Impuesto = $Traslado->getAttribute("Impuesto");
+                        if ($Impuesto==$impus) $ok = true;
+                    }
+                }
+                if (!$ok) {
+                    $this->status = "CFDI33144 No esta declarado el impuesto relacionado con el valor de ClaveProdServ.";
+                    $this->codigo = "33144 ".$this->status;
+                    return false;
+                }
+            }
             $ClaveUnidad = $Concepto->getAttribute("ClaveUnidad");
             $ok = $this->Checa_Catalogo("c_ClaveUnidad", $ClaveUnidad);
             if (!$ok) {
@@ -571,7 +598,7 @@ class Sem_CFDI {
                         }
                     }
                     $llave=$Impuesto.$TasaOCuota;
-                    if (!array_key_exists($Impuesto,$acum_tras)) $acum_tras[$llave] = 0;
+                    if (!array_key_exists($llave,$acum_tras)) $acum_tras[$llave] = 0;
                     $acum_tras[$llave] += $i_Importe;
                     $gt_tras += $i_Importe;
                 }
@@ -791,7 +818,7 @@ class Sem_CFDI {
                     return false;
                 }
             }
-            if (abs($t_rete-$TotalImpuestosRetenidos)>0.001) {
+            if (abs($t_rete-(double)$TotalImpuestosRetenidos)>0.001) {
                 $this->status = "CFDI33181 El valor del campo TotalImpuestosRetenidos debe ser igual a la suma de los importes registrados en el elemento hijo Retencion.";
                 $this->codigo = "33181 ".$this->status;
                 return false;
@@ -856,6 +883,8 @@ class Sem_CFDI {
             return false;
         }
         // }}} Impuestos
+        $this->status = "CFDI00000 Validacion semantica de CFDI 3.3 Correcta";
+        $this->codigo = "0 ".$this->status;
         return $ok;
     }
     // {{{ Checa_Catalogo
