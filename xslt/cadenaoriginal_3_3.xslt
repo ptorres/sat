@@ -47,7 +47,7 @@
   <xsl:include href="ine10.xslt"/>
   <xsl:include href="ine11.xslt"/>
   <xsl:include href="nomina12.xslt"/>
-  <xsl:include href="Pagos10.xslt"/> 
+  <xsl:include href="Pagos10.xslt"/>
   <xsl:include href="ComercioExterior11.xslt"/>
   
   <!-- Aquí iniciamos el procesamiento de la cadena original con su | inicial y el terminador || -->
@@ -106,7 +106,7 @@
     <!--
 			Llamadas para procesar al los sub nodos del comprobante
 		-->
-    <xsl:apply-templates select="./cfdi:CFDIRelacionados"/>
+    <xsl:apply-templates select="./cfdi:CfdiRelacionados"/>
     <xsl:apply-templates select="./cfdi:Emisor"/>
     <xsl:apply-templates select="./cfdi:Receptor"/>
     <xsl:apply-templates select="./cfdi:Conceptos"/>
@@ -117,7 +117,7 @@
   </xsl:template>
 
   <!-- Manejador de nodos tipo CFDIRelacionados -->
-  <xsl:template match="cfdi:CFDIRelacionados">
+  <xsl:template match="cfdi:CfdiRelacionados">
     <!-- Iniciamos el tratamiento de los atributos del CFDIRelacionados -->
     <xsl:call-template name="Requerido">
       <xsl:with-param name="valor" select="./@TipoRelacion"/>
@@ -138,8 +138,7 @@
     <xsl:call-template name="Opcional">
       <xsl:with-param name="valor" select="./@Nombre"/>
     </xsl:call-template>
-    <!-- <xsl:call-template name="Requerido"> Yo digo que es opcional -->
-    <xsl:call-template name="Opcional">
+    <xsl:call-template name="Requerido">
       <xsl:with-param name="valor" select="./@RegimenFiscal"/>
     </xsl:call-template>
   </xsl:template>
@@ -205,7 +204,7 @@
     </xsl:call-template>
 
     <!-- Manejo de sub nodos de información Traslado de Conceptos:Concepto:Impuestos:Traslados-->
-    <xsl:for-each select="./cfdi:Conceptos/cfdi:Concepto/cfdi:Impuestos/cfdi:Traslados/cfdi:Traslado">
+    <xsl:for-each select="./cfdi:Impuestos/cfdi:Traslados/cfdi:Traslado"> <!-- ValidaCFD -->
       <xsl:call-template name="Requerido">
         <xsl:with-param name="valor" select="./@Base"/>
       </xsl:call-template>
@@ -224,7 +223,7 @@
     </xsl:for-each>
 
     <!-- Manejo de sub nodos de Retencion por cada una de los Conceptos:Concepto:Impuestos:Retenciones-->
-    <xsl:for-each select="./cfdi:Conceptos/cfdi:Concepto/cfdi:Impuestos/cfdi:Retenciones/cfdi:Retencion">
+    <xsl:for-each select="./cfdi:Impuestos/cfdi:Retenciones/cfdi:Retencion"> <!-- ValidaCFD -->
       <xsl:call-template name="Requerido">
         <xsl:with-param name="valor" select="./@Base"/>
       </xsl:call-template>
@@ -243,7 +242,7 @@
     </xsl:for-each>
 
     <!-- Manejo de los distintos sub nodos de información aduanera de forma indistinta a su grado de dependencia -->
-    <xsl:for-each select=".//cfdi:InformacionAduanera">
+    <xsl:for-each select="./cfdi:InformacionAduanera"> <!-- ValidaCFD -->
       <xsl:apply-templates select="."/>
     </xsl:for-each>
 
@@ -258,7 +257,7 @@
     </xsl:if>
 
     <!-- Llamada al manejador de nodos de Parte en caso de existir -->
-    <xsl:for-each select=".//cfdi:Parte">
+    <xsl:for-each select="./cfdi:Parte"> <!-- ValidaCFD -->
       <xsl:apply-templates select="."/>
     </xsl:for-each>
   </xsl:template>
@@ -311,7 +310,7 @@
     </xsl:call-template>
 
     <!-- Manejador de nodos tipo InformacionAduanera-->
-    <xsl:for-each select=".//cfdi:InformacionAduanera">
+    <xsl:for-each select="./cfdi:InformacionAduanera"> <!-- ValidaCFD -->
       <xsl:apply-templates select="."/>
     </xsl:for-each>
   </xsl:template>
@@ -326,7 +325,7 @@
   <!-- Manejador de nodos tipo Domicilio fiscal -->
   <xsl:template match="cfdi:Impuestos">
     <!-- Manejo de sub nodos de Retencion por cada una de los Impuestos:Retenciones-->
-    <xsl:for-each select="./cfdi:Impuestos/cfdi:Retenciones/cfdi:Retencion">
+    <xsl:for-each select="./cfdi:Retenciones/cfdi:Retencion"> <!-- ValidaCFD -->
       <xsl:call-template name="Requerido">
         <xsl:with-param name="valor" select="./@Impuesto"/>
       </xsl:call-template>
@@ -339,7 +338,7 @@
       <xsl:with-param name="valor" select="./@TotalImpuestosRetenidos"/>
     </xsl:call-template>
     <!-- Manejo de sub nodos de información Traslado de Impuestos:Traslados-->
-    <xsl:for-each select="./cfdi:Impuestos/cfdi:Traslados/cfdi:Traslado">
+    <xsl:for-each select="./cfdi:Traslados/cfdi:Traslado"> <!-- ValidaCFD -->
       <xsl:call-template name="Requerido">
         <xsl:with-param name="valor" select="./@Impuesto"/>
       </xsl:call-template>
