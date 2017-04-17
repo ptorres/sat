@@ -18,8 +18,10 @@
 		la generación de las cadenas originales de los complementos fiscales 
 	-->
   <xsl:include href="ecc.xslt"/>
+  <xsl:include href="psgecfd.xslt"/>
   <xsl:include href="donat11.xslt"/>
-  <xsl:include href="Divisas.xslt"/>
+  <xsl:include href="divisas.xslt"/>
+  <xsl:include href="ecb.xslt"/>
   <xsl:include href="detallista.xslt"/>
   <xsl:include href="implocal.xslt"/>
   <xsl:include href="terceros11.xslt"/>
@@ -29,7 +31,6 @@
   <xsl:include href="TuristaPasajeroExtranjero.xslt"/>
   <xsl:include href="leyendasFisc.xslt"/>
   <xsl:include href="spei.xslt"/>
-  <xsl:include href="nomina11.xslt"/>
   <xsl:include href="cfdiregistrofiscal.xslt"/>
   <xsl:include href="pagoenespecie.xslt"/>
   <xsl:include href="consumodecombustibles.xslt"/>
@@ -43,8 +44,6 @@
   <xsl:include href="obrasarteantiguedades.xslt"/>
   <xsl:include href="AcreditamientoIEPS10.xslt"/>
   <xsl:include href="ecc11.xslt"/>
-  <xsl:include href="ComercioExterior10.xslt"/>
-  <xsl:include href="ine10.xslt"/>
   <xsl:include href="ine11.xslt"/>
   <xsl:include href="nomina12.xslt"/>
   <xsl:include href="Pagos10.xslt"/>
@@ -204,7 +203,7 @@
     </xsl:call-template>
 
     <!-- Manejo de sub nodos de información Traslado de Conceptos:Concepto:Impuestos:Traslados-->
-    <xsl:for-each select="./cfdi:Impuestos/cfdi:Traslados/cfdi:Traslado"> <!-- ValidaCFD -->
+    <xsl:for-each select="./cfdi:Conceptos/cfdi:Concepto/cfdi:Impuestos/cfdi:Traslados/cfdi:Traslado">
       <xsl:call-template name="Requerido">
         <xsl:with-param name="valor" select="./@Base"/>
       </xsl:call-template>
@@ -223,7 +222,7 @@
     </xsl:for-each>
 
     <!-- Manejo de sub nodos de Retencion por cada una de los Conceptos:Concepto:Impuestos:Retenciones-->
-    <xsl:for-each select="./cfdi:Impuestos/cfdi:Retenciones/cfdi:Retencion"> <!-- ValidaCFD -->
+    <xsl:for-each select="./cfdi:Conceptos/cfdi:Concepto/cfdi:Impuestos/cfdi:Retenciones/cfdi:Retencion">
       <xsl:call-template name="Requerido">
         <xsl:with-param name="valor" select="./@Base"/>
       </xsl:call-template>
@@ -242,7 +241,7 @@
     </xsl:for-each>
 
     <!-- Manejo de los distintos sub nodos de información aduanera de forma indistinta a su grado de dependencia -->
-    <xsl:for-each select="./cfdi:InformacionAduanera"> <!-- ValidaCFD -->
+    <xsl:for-each select=".//cfdi:InformacionAduanera">
       <xsl:apply-templates select="."/>
     </xsl:for-each>
 
@@ -257,7 +256,7 @@
     </xsl:if>
 
     <!-- Llamada al manejador de nodos de Parte en caso de existir -->
-    <xsl:for-each select="./cfdi:Parte"> <!-- ValidaCFD -->
+    <xsl:for-each select=".//cfdi:Parte">
       <xsl:apply-templates select="."/>
     </xsl:for-each>
   </xsl:template>
@@ -310,7 +309,7 @@
     </xsl:call-template>
 
     <!-- Manejador de nodos tipo InformacionAduanera-->
-    <xsl:for-each select="./cfdi:InformacionAduanera"> <!-- ValidaCFD -->
+    <xsl:for-each select=".//cfdi:InformacionAduanera">
       <xsl:apply-templates select="."/>
     </xsl:for-each>
   </xsl:template>
@@ -325,7 +324,7 @@
   <!-- Manejador de nodos tipo Domicilio fiscal -->
   <xsl:template match="cfdi:Impuestos">
     <!-- Manejo de sub nodos de Retencion por cada una de los Impuestos:Retenciones-->
-    <xsl:for-each select="./cfdi:Retenciones/cfdi:Retencion"> <!-- ValidaCFD -->
+    <xsl:for-each select="./cfdi:Impuestos/cfdi:Retenciones/cfdi:Retencion">
       <xsl:call-template name="Requerido">
         <xsl:with-param name="valor" select="./@Impuesto"/>
       </xsl:call-template>
@@ -338,7 +337,7 @@
       <xsl:with-param name="valor" select="./@TotalImpuestosRetenidos"/>
     </xsl:call-template>
     <!-- Manejo de sub nodos de información Traslado de Impuestos:Traslados-->
-    <xsl:for-each select="./cfdi:Traslados/cfdi:Traslado"> <!-- ValidaCFD -->
+    <xsl:for-each select="./cfdi:Impuestos/cfdi:Traslados/cfdi:Traslado">
       <xsl:call-template name="Requerido">
         <xsl:with-param name="valor" select="./@Impuesto"/>
       </xsl:call-template>
