@@ -30,7 +30,7 @@
     <xs:import namespace="http://www.sat.gob.mx/arteantiguedades" schemaLocation="obrasarteantiguedades.xsd"/>
 
     <xs:import namespace="http://www.sat.gob.mx/iedu" schemaLocation="iedu.xsd"/>
-    <xs:import namespace="http://www.sat.gob.mx/ventavehiculos" schemaLocation="ventavehiculos.xsd"/>
+    <xs:import namespace="http://www.sat.gob.mx/ventavehiculos" schemaLocation="ventavehiculos11.xsd"/>
     <xs:import namespace="http://www.sat.gob.mx/terceros" schemaLocation="terceros11.xsd"/>
 
     <xs:import namespace="http://www.sat.gob.mx/acreditamiento" schemaLocation="AcreditamientoIEPS10.xsd"/>
