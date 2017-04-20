@@ -72,5 +72,9 @@ foreach ($rs as $row) {
     echo $row["rfc_sncf"];
 } 
 ?>
+</table>
+<hr>
+Informacion proporcionada unicamente para fines informativos y 
+no nos hacemos responsables de su exactitud 
 </body>
 </html>
