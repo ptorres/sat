@@ -13,7 +13,7 @@ class Sem_CFDI {
     var $con;
     var $codigo;
     var $status;
-    var $cuenta=false; // Para saber si ya conto la cantidad de l_rfc
+    var $cuenta=true; // Para saber si ya conto la cantidad de l_rfc
     function valida($xml_cfd,$conn) {
     // {{{ valida : nodo Comprobante
         error_reporting(E_ALL);
