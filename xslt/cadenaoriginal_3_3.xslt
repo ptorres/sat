@@ -18,10 +18,8 @@
 		la generación de las cadenas originales de los complementos fiscales 
 	-->
   <xsl:include href="ecc.xslt"/>
-  <xsl:include href="psgecfd.xslt"/>
   <xsl:include href="donat11.xslt"/>
-  <xsl:include href="divisas.xslt"/>
-  <xsl:include href="ecb.xslt"/>
+  <xsl:include href="Divisas.xslt"/>
   <xsl:include href="detallista.xslt"/>
   <xsl:include href="implocal.xslt"/>
   <xsl:include href="terceros11.xslt"/>
