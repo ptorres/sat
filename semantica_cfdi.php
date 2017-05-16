@@ -43,7 +43,7 @@ class Sem_CFDI {
         $Descuento = $Comprobante->getAttribute("Descuento");
         $TipoRelacion = $Comprobante->getAttribute("TipoRelacion");
         $Total = $Comprobante->getAttribute("Total");
-        $regex  = "[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])T(([01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9])";
+        $regex = "(20[1-9][0-9])-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])T(([01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9])";
         $aux = "/^$regex$/A";
         $ok = preg_match($aux,$Fecha);
         if (!$ok) {
@@ -291,7 +291,7 @@ class Sem_CFDI {
         }
         $ok = $this->Checa_Catalogo("c_CP", $LugarExpedicion);
         if (!$ok) {
-            $this->status = "CFDI33125 El valor del atributo LugarExpedicion no cumple con un valor del catalogo c_CodigoPostal";
+            $this->status = "CFDI33125 El campo LugarExpedicion, no contiene un valor del catálogo c_CodigoPostal.";
             $this->codigo = "33125 ".$this->status;
             return false;
         }
@@ -479,11 +479,6 @@ class Sem_CFDI {
             }
             $ValorUnitario = $Concepto->getAttribute("ValorUnitario");
             $dec_valor = $this->cantidad_decimales($ValorUnitario);
-            if ($dec_valor > $dec_moneda) {
-                $this->status = "CFDI33146 El valor del campo ValorUnitario debe tener hasta la cantidad de decimales que soporte la moneda.";
-                $this->codigo = "33146 ".$this->status;
-                return false;
-            }
             if ( ($TipoDeComprobante=="I" || $TipoDeComprobante=="E" || $TipoDeComprobante=="N") && (double)$ValorUnitario <= 0) {
                 $this->status = "CFDI33147 El valor valor del campo ValorUnitario debe ser mayor que cero (0) cuando el tipo de comprobante es Ingreso, Egreso o Nomina.";
                 $this->codigo = "33147 ".$this->status;
@@ -493,11 +488,6 @@ class Sem_CFDI {
             $dec_cant = $this->cantidad_decimales($Cantidad);
             $Importe = $Concepto->getAttribute("Importe");
             $dec_impo = $this->cantidad_decimales($Importe);
-            if ($dec_impo > $dec_moneda) {
-                $this->status = "CFDI33148 El valor del campo Importe debe tener hasta la cantidad de decimales que soporte la moneda.";
-                $this->codigo = "33148 ".$this->status;
-                return false;
-            }
             $inf = ($Cantidad - pow(10,-1*$dec_cant)/2)*($ValorUnitario - pow(10,-1*$dec_valor)/2);
             $inf = floor($inf * $fac_moneda) / $fac_moneda;
             $sup = ($Cantidad + pow(10,-1*$dec_cant)/2-pow(10,-12))*($ValorUnitario + pow(10,-1 * $dec_valor)/2-pow(10,-12));
@@ -510,8 +500,8 @@ class Sem_CFDI {
             }
             $Descuento = $Concepto->getAttribute("Descuento");
             $dec_desc = $this->cantidad_decimales($Descuento);
-            if ($dec_desc > $dec_moneda) {
-                $this->status = "CFDI33150 El valor del campo Descuento debe tener hasta la cantidad de decimales que soporte la moneda.";
+            if ($dec_desc > $dec_impo) {
+                $this->status = "CFDI33150 El valor del campo Descuento debe tener hasta la cantidad de decimales que tenga registrado el atributo importe del concepto.";
                 $this->codigo = "33150 ".$this->status;
                 return false;
             }
@@ -533,11 +523,6 @@ class Sem_CFDI {
                     $Traslado=$Traslados->item($j);
                     $Base = $Traslado->getAttribute("Base");
                     $dec_base = $this->cantidad_decimales($Base);
-                    if ($dec_base > $dec_moneda) {
-                        $this->status = "CFDI33153 El valor del campo Base que corresponde a Traslado debe tener hasta la cantidad de decimales que soporte la moneda.";
-                        $this->codigo = "33153 ".$this->status;
-                        return false;
-                    }
                     if ((double)$Base<=0) {
                         $this->status = "CFDI33154 El valor del campo Base que corresponde a Traslado debe ser mayor que cero.";
                         $this->codigo = "33154 ".$this->status;
@@ -574,18 +559,13 @@ class Sem_CFDI {
                         }
                         $row = $this->Obten_Catalogo("c_TasaOCuota",$TasaOCuota,$Impuesto,$TipoFactor);
                         if (sizeof($row) == 0) {
-                            $this->status = "CFDI33159 El valor del campo TasaOCuota que corresponde a Traslado no contiene un valor del catálogo c_TasaOCuota.";
+                            $this->status = "CFDI33159 El valor del campo TasaOCuota que corresponde a Traslado no contiene un valor del catálogo c_TasaOcuota o se encuentra fuera de rango.";
                             $this->codigo = "33159 ".$this->status;
                             return false;
                         }
                     }
                     if ($i_Importe != null) {
                         $dec_importe = $this->cantidad_decimales($i_Importe);
-                        if ($dec_importe > $dec_moneda) {
-                            $this->status = "CFDI33160 El valor del campo Importe que corresponde a Traslado debe tener hasta la cantidad de decimales que soporte la moneda.";
-                            $this->codigo = "33160 ".$this->status;
-                            return false;
-                        }
                         $inf = ($Base - pow(10,-1*$dec_base)/2)*$TasaOCuota;;
                         $inf = floor($inf * $fac_moneda) / $fac_moneda;
                         $sup = ($Base + pow(10,-1*$dec_base)/2-pow(10,-12))*$TasaOCuota;
@@ -606,11 +586,6 @@ class Sem_CFDI {
                     $Retencion=$Retenciones->item($j);
                     $Base = $Retencion->getAttribute("Base");
                     $dec_base = $this->cantidad_decimales($Base);
-                    if ($dec_base > $dec_moneda) {
-                        $this->status = "CFDI33162 El valor del campo Base que corresponde a Retención debe tener hasta la cantidad de decimales que soporte la moneda.";
-                        $this->codigo = "33162 ".$this->status;
-                        return false;
-                    }
                     if ((double)$Base<=0) {
                         $this->status = "CFDI33163 El valor del campo Base que corresponde a Retención debe ser mayor que cero.";
                         $this->codigo = "33163 ".$this->status;
@@ -644,11 +619,6 @@ class Sem_CFDI {
                     }
                     $i_Importe = $Retencion->getAttribute("Importe");
                     $dec_impo = $this->cantidad_decimales($i_Importe);
-                    if ($dec_impo > $dec_moneda) {
-                        $this->status = "CFDI33168 El valor del campo Importe que corresponde a Retención debe tener hasta la cantidad de decimales que soporte la moneda.";
-                        $this->codigo = "33168 ".$this->status;
-                        return false;
-                    }
                     $inf = ($Base - pow(10,-1*$dec_base)/2)*$TasaOCuota;
                     $inf = floor($inf * $fac_moneda) / $fac_moneda;
                     $sup = ($Base + pow(10,-1*$dec_base)/2-pow(10,-12))*$TasaOCuota;
@@ -701,22 +671,12 @@ class Sem_CFDI {
                     $Importe = $Parte->getAttribute('Importe');
                     if ($ValorUnitario!= "" || $Importe != "") {
                         $dec_valor = $this->cantidad_decimales($ValorUnitario);
-                        if ($dec_valor > $dec_moneda) {
-                            $this->status = "CFDI33173 El valor del campo ValorUnitario debe tener hasta la cantidad de decimales que soporte la moneda.";
-                            $this->codigo = "33173 ".$this->status;
-                            return false;
-                        }
                         if ((double)$ValorUnitario <= 0) {
                             $this->status = "CFDI33174 El valor del campo ValorUnitario debe ser mayor que cero (0).";
                             $this->codigo = "33174 ".$this->status;
                             return false;
                         }
                         $dec_impo = $this->cantidad_decimales($Importe);
-                        if ($dec_impo > $dec_moneda) {
-                            $this->status = "CFDI33175 El valor del campo Importe debe tener hasta la cantidad de decimales que soporte la moneda.";
-                            $this->codigo = "33175 ".$this->status;
-                            return false;
-                        }
                         $Cantidad = $Parte->getAttribute('Cantidad');
                         $dec_cant = $this->cantidad_decimales($Cantidad);
                         $inf = ($Cantidad - pow(10,-1*$dec_cant)/2)*($ValorUnitario - pow(10,-1*$dec_valor)/2);
@@ -806,11 +766,6 @@ class Sem_CFDI {
                     return false;
                 }
                 $dec_impo = $this->cantidad_decimales($impo);
-                if ($dec_impo > $dec_moneda) {
-                    $this->status = "CFDI33188 El valor del campo Importe correspondiente a Retención debe tener hasta la cantidad de decimales que soporte la moneda.";
-                    $this->codigo = "33188 ".$this->status;
-                    return false;
-                }
                 if (!array_key_exists($impu,$acum_rete) ||
                     abs($acum_rete[$impu]-$impo)>0.001) {
                     $this->status = "CFDI33189 El campo Importe correspondiente a Retención no es igual a la suma de los importes de los impuestos retenidos registrados en los conceptos donde el impuesto sea igual al campo impuesto de este elemento.";
@@ -857,11 +812,6 @@ class Sem_CFDI {
                 $impo=$Traslado->getAttribute("Importe");
                 $t_tras += (double)$impo;
                 $dec_impo = $this->cantidad_decimales($impo);
-                if ($dec_impo > $dec_moneda) {
-                    $this->status = "CFDI33194 El valor del campo Importe correspondiente a Traslado debe tener hasta la cantidad de decimales que soporte la moneda.";
-                    $this->codigo = "33194 ".$this->status;
-                    return false;
-                }
                 if (!array_key_exists($llave,$acum_tras) ||
                     abs($acum_tras[$llave]-$impo)>0.001) {
                     $this->status = "CFDI33195 El campo Importe correspondiente a Traslado no es igual a la suma de los importes de los impuestos trasladados registrados en los conceptos donde el impuesto del concepto sea igual al campo impuesto de este elemento y la TasaOCuota del concepto sea igual al campo TasaOCuota de este elemento.";
