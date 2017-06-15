@@ -1,5 +1,7 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <xs:schema xmlns:pago10="http://www.sat.gob.mx/Pagos" xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:catCFDI="http://www.sat.gob.mx/sitio_internet/cfd/catalogos" xmlns:tdCFDI="http://www.sat.gob.mx/sitio_internet/cfd/tipoDatos/tdCFDI" xmlns:catPagos="http://www.sat.gob.mx/sitio_internet/cfd/catalogos/Pagos" targetNamespace="http://www.sat.gob.mx/Pagos" elementFormDefault="qualified" attributeFormDefault="unqualified">
+  <xs:import namespace="http://www.sat.gob.mx/sitio_internet/cfd/catalogos" schemaLocation="catCFDI.xsd"/>
+  <xs:import namespace="http://www.sat.gob.mx/sitio_internet/cfd/tipoDatos/tdCFDI" schemaLocation="tdCFDI.xsd"/>
   <xs:import namespace="http://www.sat.gob.mx/sitio_internet/cfd/catalogos/Pagos" schemaLocation="catPagos.xsd"/>
   <xs:element name="Pagos">
     <xs:annotation>
@@ -40,7 +42,7 @@
                         <xs:minLength value="1"/>
                         <xs:maxLength value="25"/>
                         <xs:whiteSpace value="collapse"/>
-                        <xs:pattern value="([A-Z]|[a-z]|[0-9]| |Ñ|ñ|!|&quot;|%|&amp;|&apos;|´|-|:|;|&gt;|=|&lt;|@|_|,|\{|\}|`|~|á|é|í|ó|ú|Á|É|Í|Ó|Ú|ü|Ü){1,25}"/>
+                        <xs:pattern value="[^|]{1,25}"/>
                       </xs:restriction>
                     </xs:simpleType>
                   </xs:attribute>
@@ -53,13 +55,13 @@
                         <xs:minLength value="1"/>
                         <xs:maxLength value="40"/>
                         <xs:whiteSpace value="collapse"/>
-                        <xs:pattern value="([A-Z]|[a-z]|[0-9]| |Ñ|ñ|!|&quot;|%|&amp;|&apos;|´|-|:|;|&gt;|=|&lt;|@|_|,|\{|\}|`|~|á|é|í|ó|ú|Á|É|Í|Ó|Ú|ü|Ü){1,40}"/>
+                        <xs:pattern value="[^|]{1,40}"/>
                       </xs:restriction>
                     </xs:simpleType>
                   </xs:attribute>
                   <xs:attribute name="MonedaDR" use="required" type="catCFDI:c_Moneda">
                     <xs:annotation>
-                      <xs:documentation>Atributo requerido para identificar la clave de la moneda utilizada en los importes del documento relacionado, cuando se usa moneda nacional o el documento relacionado no especifica la moneda se registra MXN. Los importes registrados en los atributos “SaldoAnterior”, “ImportePagado” e “ImporteSaldoInsoluto” de éste nodo, deben corresponder a esta moneda. Conforme con la especificación ISO 4217.</xs:documentation>
+                      <xs:documentation>Atributo requerido para identificar la clave de la moneda utilizada en los importes del documento relacionado, cuando se usa moneda nacional o el documento relacionado no especifica la moneda se registra MXN. Los importes registrados en los atributos “ImpSaldoAnt”, “ImpPagado” e “ImpSaldoInsoluto” de éste nodo, deben corresponder a esta moneda. Conforme con la especificación ISO 4217.</xs:documentation>
                     </xs:annotation>
                   </xs:attribute>
                   <xs:attribute name="TipoCambioDR" use="optional">
@@ -69,7 +71,7 @@
                     <xs:simpleType>
                       <xs:restriction base="xs:decimal">
                         <xs:fractionDigits value="6"/>
-                        <xs:enumeration value="0.000001"/>
+                        <xs:minInclusive value="0.000001"/>
                         <xs:whiteSpace value="collapse"/>
                       </xs:restriction>
                     </xs:simpleType>
@@ -81,7 +83,7 @@
                   </xs:attribute>
                   <xs:attribute name="NumParcialidad" use="optional">
                     <xs:annotation>
-                      <xs:documentation>Atributo condicional para expresar el número de parcialidad que corresponde al pago. Es requerido cuando MetodoDePagoDR contiene: “Pago en parcialidades o diferido” o “Pago inicial y parcialidades”.</xs:documentation>
+                      <xs:documentation>Atributo condicional para expresar el número de parcialidad que corresponde al pago. Es requerido cuando MetodoDePagoDR contiene: “PPD” Pago en parcialidades o diferido.</xs:documentation>
                     </xs:annotation>
                     <xs:simpleType>
                       <xs:restriction base="xs:integer">
@@ -92,7 +94,7 @@
                   </xs:attribute>
                   <xs:attribute name="ImpSaldoAnt" use="optional" type="tdCFDI:t_Importe">
                     <xs:annotation>
-                      <xs:documentation>Atributo condicional para expresar el importe del saldo anterior del documento relacionado o el monto del saldo insoluto de la parcialidad anterior. Es requerido cuando MetodoDePagoDR contiene: “Pago en parcialidades o diferido” o “Pago inicial y parcialidades” En el caso de que sea la primer parcialidad este campo debe contener el importe total del documento relacionado.</xs:documentation>
+                      <xs:documentation>Atributo condicional para expresar el monto del saldo insoluto de la parcialidad anterior. Es requerido cuando MetodoDePagoDR contiene: “PPD” Pago en parcialidades o diferido.En el caso de que sea la primer parcialidad este campo debe contener el importe total del documento relacionado.</xs:documentation>
                     </xs:annotation>
                   </xs:attribute>
                   <xs:attribute name="ImpPagado" use="optional" type="tdCFDI:t_Importe">
@@ -102,7 +104,7 @@
                   </xs:attribute>
                   <xs:attribute name="ImpSaldoInsoluto" use="optional" type="tdCFDI:t_Importe">
                     <xs:annotation>
-                      <xs:documentation>Atributo condicional para expresar la diferencia entre el importe del saldo anterior y el monto del pago. Es requerido cuando MetodoDePagoDR contiene: “Pago en parcialidades o diferido” o “Pago inicial y parcialidades”.</xs:documentation>
+                      <xs:documentation>Atributo condicional para expresar la diferencia entre el importe del saldo anterior y el monto del pago. Es requerido cuando MetodoDePagoDR contiene: “PPD” Pago en parcialidades o diferido.</xs:documentation>
                     </xs:annotation>
                   </xs:attribute>
                 </xs:complexType>
@@ -160,10 +162,17 @@
                                   <xs:documentation>Atributo requerido para señalar la clave del tipo de factor que se aplica a la base del impuesto.</xs:documentation>
                                 </xs:annotation>
                               </xs:attribute>
-                              <xs:attribute name="TasaOCuota" use="required" type="catCFDI:c_TasaOCuota">
+                              <xs:attribute name="TasaOCuota" use="required">
                                 <xs:annotation>
-                                  <xs:documentation>Atributo requerido para señalar la clave de la tasa o cuota del impuesto que se traslada.</xs:documentation>
+                                  <xs:documentation>Atributo requerido para señalar el valor de la tasa o cuota del impuesto que se traslada.</xs:documentation>
                                 </xs:annotation>
+                                <xs:simpleType>
+                                  <xs:restriction base="xs:decimal">
+                                    <xs:fractionDigits value="6"/>
+                                    <xs:minInclusive value="0.000000"/>
+                                    <xs:whiteSpace value="collapse"/>
+                                  </xs:restriction>
+                                </xs:simpleType>
                                 </xs:attribute>
                                 <xs:attribute name="Importe" use="required" type="tdCFDI:t_Importe">
                                   <xs:annotation>
@@ -229,7 +238,7 @@
                 <xs:restriction base="xs:string">
                   <xs:minLength value="1"/>
                   <xs:maxLength value="100"/>
-                  <xs:pattern value="([A-Z]|[a-z]|[0-9]| |Ñ|ñ|!|&quot;|%|&amp;|&apos;|´|-|:|;|&gt;|=|&lt;|@|_|,|\{|\}|`|~|á|é|í|ó|ú|Á|É|Í|Ó|Ú|ü|Ü){1,100}"/>
+                  <xs:pattern value="[^|]{1,100}"/>
                 </xs:restriction>
               </xs:simpleType>
             </xs:attribute>
@@ -241,7 +250,7 @@
                 <xs:restriction base="xs:string">
                   <xs:minLength value="12"/>
                   <xs:maxLength value="13"/>
-                  <xs:pattern value="[XEXX010101000]|[A-Z&amp;Ñ]{3}[0-9]{2}(0[1-9]|1[012])(0[1-9]|[12][0-9]|3[01])[A-Z0-9]{2}[0-9A]"/>
+                  <xs:pattern value="XEXX010101000|[A-Z&amp;Ñ]{3}[0-9]{2}(0[1-9]|1[012])(0[1-9]|[12][0-9]|3[01])[A-Z0-9]{2}[0-9A]"/>
                   <xs:whiteSpace value="collapse"/>
                 </xs:restriction>
               </xs:simpleType>
@@ -255,7 +264,7 @@
                   <xs:minLength value="1"/>
                   <xs:maxLength value="300"/>
                   <xs:whiteSpace value="collapse"/>
-                  <xs:pattern value="([A-Z]|[a-z]|[0-9]| |Ñ|ñ|!|&quot;|%|&amp;|&apos;|´|-|:|;|&gt;|=|&lt;|@|_|,|\{|\}|`|~|á|é|í|ó|ú|Á|É|Í|Ó|Ú|ü|Ü){1,300}"/>
+                  <xs:pattern value="[^|]{1,300}"/>
                 </xs:restriction>
               </xs:simpleType>
             </xs:attribute>
@@ -268,7 +277,7 @@
                   <xs:minLength value="10"/>
                   <xs:maxLength value="50"/>
                   <xs:whiteSpace value="collapse"/>
-                  <xs:pattern value="[0-9]{10,11}|[0-9]{15,16}|[0-9]{18}|[A-Z0-9_]{10,50}"/>
+                  <xs:pattern value="[A-Z0-9_]{10,50}"/>
                 </xs:restriction>
               </xs:simpleType>
             </xs:attribute>
@@ -286,7 +295,7 @@
                   <xs:minLength value="10"/>
                   <xs:maxLength value="50"/>
                   <xs:whiteSpace value="collapse"/>
-                  <xs:pattern value="[0-9]{10,11}|[0-9]{15,16}|[0-9]{18}|[A-Z0-9_]{10,50}"/>
+                  <xs:pattern value="[A-Z0-9_]{10,50}"/>
                 </xs:restriction>
               </xs:simpleType>
             </xs:attribute>
@@ -314,7 +323,6 @@
                   <xs:minLength value="1"/>
                   <xs:maxLength value="8192"/>
                   <xs:whiteSpace value="collapse"/>
-                  <xs:pattern value="([A-Z]|[a-z]|[0-9]| |Ñ|ñ|!|&quot;|%|&amp;|&apos;|´|-|:|;|&gt;|=|&lt;|@|_|,|\{|\}|`|~|á|é|í|ó|ú|Á|É|Í|Ó|Ú|ü|Ü){1,8192}"/>
                 </xs:restriction>
               </xs:simpleType>
             </xs:attribute>

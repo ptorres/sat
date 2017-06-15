@@ -15,454 +15,525 @@ class Pagos10 {
         $ok = true;
         $this->xml_cfd = $xml_cfd;
         $this->conn = $conn;
-        $this->status = "Inicia Validacion de semantica pagos 1.0";
+        $this->status = "CPR000 Inicia Validacion de semantica pagos 1.0";
         $this->codigo = "0 ".$this->status;
         $Comprobante = $this->xml_cfd->getElementsByTagName('Comprobante')->item(0);
         $Emisor = $this->xml_cfd->getElementsByTagName('Emisor')->item(0);
         $Receptor = $this->xml_cfd->getElementsByTagName('Receptor')->item(0);
-        $version = $Comprobante->getAttribute("version");
-        if ($version==null) {
-            $version = $Comprobante->getAttribute("Version");
-        }
-        if ($version != "3.3" && $version != "3.2") {
-                $this->status = "PAG100 El atributo cfdi:Comprobante:version no tiene un valor valido.";
-                $this->codigo = "100 ".$this->status;
-                return false;
-        }
+
         $pagos = $Comprobante->getElementsByTagName('Pagos')->item(0);
         $Complemento = $Comprobante->getElementsByTagName('Complemento')->item(0);
         $pago_version = $pagos->getAttribute("Version");
         $Pagos = $pagos->getElementsByTagName('Pago');
+        $TipoDeComprobante = $Comprobante->getAttribute("TipoDeComprobante");
         $nb_Pagos = $Pagos->length;
         // }}}
-        if ($version == "3.2") {
-            // {{{ Valida Comprobante 3.2
-            $fecha = $Comprobante->getAttribute("fecha");
-            $regex = "(20[1-9][0-9])-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])T(([01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9])";
-            $aux = "/^$regex$/A";
-            $ok = preg_match($aux,$fecha);
-            if (!$ok) {
-                $this->status = "PAG101 El atributo cfdi:Comprobante:fecha no cumple con el patrón requerido.";
-                $this->codigo = "101 ".$this->status;
-                return false;
-            }
-            $noCertificado = $Comprobante->getAttribute("noCertificado");
-            if (strlen($noCertificado)!=20) {
-                $this->status = "PAG102 El atributo cfdi:Comprobante:noCertificado no es de 20 posiciones";
-                $this->codigo = "102 ".$this->status;
-                return false;
-            }
-            $formaDePago = $Comprobante->getAttribute("formaDePago");
-            if ($formaDePago!="NA") {
-                $this->status = "PAG103 El atributo cfdi:Comprobante:formaDePago no es de 'NA' ";
-                $this->codigo = "103 ".$this->status;
-                return false;
-            }
-            $CodigoPostal = $Comprobante->getAttribute("LugarExpedicion");
-            $regex = "([0-9]{5})";
-            $aux = "/^$regex$/A";
-            $ok = preg_match($aux,$CodigoPostal);
-            if ($ok) $ok = $this->Checa_Catalogo("c_CP", $CodigoPostal);
-            if (!$ok) {
-                $this->status = 'PAG104 El atributo cfdi:Comprobante:LugarExpedicion no cumple con alguno de los valores permitidos.';
-                $this->codigo = "104 ".$this->status;
-                return false;
-            }
-            $subTotal = $Comprobante->getAttribute("subTotal");
-            if ($subTotal!=0) {
-                $this->status = "PAG105 El atributo cfdi:Comprobante:subTotal no es = 0  ";
-                $this->codigo = "105 ".$this->status;
-                return false;
-            }
-
-            $total = $Comprobante->getAttribute("total");
-            if ($total!=0) {
-                $this->status = "PAG106 El atributo cfdi:Comprobante:total no es = 0  ";
-                $this->codigo = "106 ".$this->status;
-                return false;
-            }
-
-            $tipoDeComprobante = $Comprobante->getAttribute("tipoDeComprobante");
-            if ($tipoDeComprobante!="ingreso") {
-                $this->status = "PAG107 El atributo cfdi:Comprobante:tipoDeComprobante no es de 'ingreso'   ";
-                $this->codigo = "107 ".$this->status;
-                return false;
-            }
-            $metodoDePago = $Comprobante->getAttribute("metodoDePago");
-            if ($metodoDePago!="pago") {
-                $this->status = "PAG108 El atributo cfdi:Comprobante:metodoDePago no es de 'pago'   ";
-                $this->codigo = "108 ".$this->status;
-                return false;
-            }
-
-            $condicionesDePago = $Comprobante->getAttribute("condicionesDePago");
-            $descuento = $Comprobante->getAttribute("descuento");
-            $motivoDescuento = $Comprobante->getAttribute("motivoDescuento");
-            $TipoCambio = $Comprobante->getAttribute("TipoCambio");
-            $Moneda = $Comprobante->getAttribute("Moneda");
-            $NumCtaPago = $Comprobante->getAttribute("NumCtaPago");
-            $SerieFolioFiscalOrig = $Comprobante->getAttribute("SerieFolioFiscalOrig");
-            $FechaFolioFiscalOrig = $Comprobante->getAttribute("FechaFolioFiscalOrig");
-            $MontoFolioFiscalOrig = $Comprobante->getAttribute("MontoFolioFiscalOrig");
-             $this->status = "PAG109 Los atributos de cfdi:Comprobante:";
-            if ($condicionesDePago!="") $this->status.="condicionesDePago, ";
-            if ($descuento!="") $this->status.="descuento, ";
-            if ($motivoDescuento!="") $this->status.="motivoDescuento, ";
-            if ($TipoCambio!="") $this->status.="TipoCambio, ";
-            if ($Moneda!="") $this->status.="Moneda, ";
-            if ($NumCtaPago!="") $this->status.="NumCtaPago, ";
-            if ($SerieFolioFiscalOrig!="") $this->status.="SerieFolioFiscalOrig, ";
-            if ($FechaFolioFiscalOrig!="") $this->status.="FechaFolioFiscalOrig, ";
-            if ($MontoFolioFiscalOrig!="") $this->status.="MontoFolioFiscalOrig, ";
-            if ($condicionesDePago!="" OR $descuento!="" OR $motivoDescuento!="" OR
-                $TipoCambio!="" OR $Moneda!="" OR $NumCtaPago!="" OR 
-                $SerieFolioFiscalOrig!="" OR $FechaFolioFiscalOrig!="" OR
-                $MontoFolioFiscalOrig!="") {
-                $this->codigo = "109 ".substr($this->status,0,-2);
-                return false;
-            }
-
-
-            $DomicilioFiscal = $Emisor->getElementsByTagName('DomicilioFiscal');
-            $ExpedidoEn = $Emisor->getElementsByTagName('ExpedidoEn');
-            $Domicilio = $Receptor->getElementsByTagName('Domicilio');
-            $this->status = "PAG110 Los atributos de cfdi:";
-            if ($DomicilioFiscal->length != 0) $this->status.="Emisor:DomicilioFiscal, ";
-            if ($ExpedidoEn->length != 0) $this->status.="Emisor:ExpedidoEn, ";
-            if ($Domicilio->length != 0) $this->status.="Receptor:Domicilio, ";
-            if ($DomicilioFiscal->length != 0 OR $ExpedidoEn->length != 0 OR 
-                $Domicilio->length != 0) {
-                $this->codigo = "110 ".substr($this->status,0,-2);
-                return false;
-            }
-            $Impuestos = $Comprobante->getElementsByTagName('Impuestos')->item(0);
-            $nodo = $Impuestos->childNodes->item(1);
-            if ($nodo != NULL) {
-                $name=$nodo->nodeName;
-                $this->status = "PAG111 El nodo cfdi:Comprobante.Impuestos no cumple 1 la estructura.";
-                $this->codigo = "111 ".$this->status;
-                return false;
-            }
-            if ($Impuestos->hasAttributes())  {
-                $this->status = "PAG111 El nodo cfdi:Comprobante.Impuestos no cumple 2 la estructura.";
-                $this->codigo = "111 ".$this->status;
-                return false;
-            } // }}}
-
-            $Conceptos = $Comprobante->getElementsByTagName('Concepto');
-            if ($Conceptos->length != 1) {
-                $this->status = "PAG112 El nodo Comprobante.Conceptos.Concepto,  1 Solo puede registrarse un nodo concepto, sin elementos hijo.";
-                $this->codigo = "112 ".$this->status;
-                return false;
-            }
-            $Concepto = $Conceptos->item(0);
-            if ($Concepto->hasChildNodes()) {
-                $this->status = "PAG112 El nodo Comprobante.Conceptos.Concepto, 2 Solo puede registrarse un nodo concepto, sin elementos hijo.";
-                $this->codigo = "112 ".$this->status;
-                return false;
-            }
-            $noIdentificacion = $Concepto->getAttribute("noIdentificacion");
-            if ($noIdentificacion!="84111506") {
-                $this->status = "PAG113 El nodo Comprobante.Conceptos.noIdentificacion, el valor debe de ser 84111506";
-                $this->codigo = "113 ".$this->status;
-                return false;
-            }
-            $cantidad = $Concepto->getAttribute("cantidad");
-            if ($cantidad!="1") {
-                $this->status = "PAG114 El nodo Comprobante.Conceptos.cantidad, el valor debe de ser 1 ";
-                $this->codigo = "114 ".$this->status;
-                return false;
-            }
-            $unidad = $Concepto->getAttribute("unidad");
-            if ($unidad!="ACT") {
-                $this->status = "PAG115 El nodo Comprobante.Conceptos.unidad, el valor debe de ser 'ACT' ";
-                $this->codigo = "115 ".$this->status;
-                return false;
-            }
-            $descripcion = $Concepto->getAttribute("descripcion");
-            if ($descripcion!="Pago") {
-                $this->status = "PAG116 El nodo Comprobante.Conceptos.descripcion, el valor debe de ser 'Pago' ";
-                $this->codigo = "116 ".$this->status;
-                return false;
-            }
-
-            $valorUnitario = $Concepto->getAttribute("valorUnitario");
-            if ($valorUnitario!="0") {
-                $this->status = "PAG117 El nodo Comprobante.Conceptos.valorUnitario, el valor debe de ser '0' ";
-                $this->codigo = "117 ".$this->status;
-                return false;
-            }
-            $Importe = $Concepto->getAttribute("Importe");
-            if ($Importe!="0") {
-                $this->status = "PAG118 El nodo Comprobante.Conceptos.Importe, el valor debe de ser '0' ";
-                $this->codigo = "118 ".$this->status;
-                return false;
-            }
-        }   // termina version 3.2
-        //  ELEMENTOS PAGOS
-
-        if ($pagos->parentNode->nodeName!="cfdi:Complemento") {
-            $this->status = "PAG135 El nodo pago10:Pagos debe registrarse como un nodo hijo del nodo Complemento en el CFDI.";
-            $this->codigo = "135 ".$this->status;
+	//CRP101
+        if ($TipoDeComprobante!="P") {
+            $this->status = "CRP101 El valor del campo TipoDeComprobante debe ser 'P'";
+            $this->codigo = "101 ".$this->status;
             return false;
-        }
-
-           $pagos_n = $Comprobante->getElementsByTagName('Pagos');
-           if ($pagos_n->length >1 ) {
-             $this->status = "PAG136 El nodo Comprobante.Complemento.Pagos, solo debe de existir un nodo Pagos en el CFDI  ";
-             $this->codigo = "136 ".$this->status;
+         }
+         $SubTotal = $Comprobante->getAttribute("SubTotal");
+         if($SubTotal!="0") {
+            $this->status = "CRP102 El valor del campo SubTotal debe ser cero '0'.";
+           $this->codigo = "102 ".$this->status;
+            return false;
+         }
+         $Moneda = $Comprobante->getAttribute("Moneda");
+         if ($Moneda!="XXX") {
+             $this->status = "CRP103 El valor del campo Moneda debe ser 'XXX'.";
+            $this->codigo = "103 ".$this->status;
              return false;
-           }
-
-        if ($version == "3.3") {
-           $TipoDeComprobante = $Comprobante->getAttribute("TipoDeComprobante");
-          //echo "tipo=$TipoDeComprobante";
-           if ($TipoDeComprobante=="T" || $TipoDeComprobante=="N") {
-              if ($Pagos->length != 0) {
-                $this->status = "PAG119; No debe de existir el complemento para pagos cuando el TipoDeComprobante es T o N.";
-                 $this->codigo = "119 ".$this->status;
-                 return false;
-              }
-           }
-           if ($TipoDeComprobante=="I" || $TipoDeComprobante=="E") {
-              $FormaPago = $Comprobante->getAttribute("FormaPago");
-              if ($FormaPago != "") {
-                 $this->status = "PAG120; No debe de existir el atributo CFDI:FormaPago ";
-                 $this->codigo = "120 ".$this->status;
-                 return false;
-              }
-              $MetodoPago = $Comprobante->getAttribute("MetodoPago");
-              if ($MetodoPago != "") {
-                 $this->status = "PAG120-2; No debe de existir el atributo CFDI:MetodoPago ";
-                 $this->codigo = "120-2 ".$this->status;
-                 return false;
-              }
-              $DoctoRelacionado = $Comprobante->getElementsByTagName('DoctoRelacionado');
-              if ($DoctoRelacionado->length != 0) {
-                 $this->status = "PAG120-3; No debe tener elemento hijo  DoctoRelacionado ";
-                 $this->codigo = "120-3 ".$this->status;
-                 return false;
-              }
-              $Impuestos = $pagos->getElementsByTagName('Impuestos');
-              if ($Impuestos->length != 0) {
-                 $this->status = "PAG120-4; No debe tener elemento hijo  Impuestos ";
-                 $this->codigo = "120-4 ".$this->status;
-                 return false;
-              }
-           } //fin  si es comprobante I o E
-
-           if ($TipoDeComprobante=="P") {
-               $Subtotal = $Comprobante->getAttribute("Subtotal");
-               if ($Subtotal!="0") {
-                 $this->status = "PAG121 ; El valor de Subtotal debe de ser 0  ";
-                 $this->codigo = "121 ".$this->status;
-                 return false;
-               }
-               $Moneda = $Comprobante->getAttribute("Moneda");
-               if ($Moneda!="XXX") {
-                 $this->status = "PAG122 ; El valor de Moneda debe de ser 'XXX'  ";
+         }
+         $FormaPago = $Comprobante->getAttribute("FormaPago");
+         if ($FormaPago!=null) {
+             $this->status = "CRP104 El campo FormaPago no se debe registrar en el CFDI.";
+            $this->codigo = "104 ".$this->status;
+             return false;
+         }
+         $MetodoPago = $Comprobante->getAttribute("MetodoPago");
+         if ($MetodoPago!=null) {
+             $this->status = "CRP105 El campo MetodoPago no se debe registrar en el CFDI.";
+             $this->codigo = "105 ".$this->status;
+             return false;
+         }
+         $CondicionesDePago = $Comprobante->getAttribute("CondicionesDePago");
+         if ($CondicionesDePago!=null) {
+             $this->status = "CRP106 El campo CondicionesDePago no se debe registrar en el CFDI.";
+             $this->codigo = "106 ".$this->status;
+             return false;
+         }
+         $Descuento = $Comprobante->getAttribute("Descuento");
+         if ($Descuento!=null) {
+             $this->status = "CRP107 El campo Descuento no se debe registrar en el CFDI.";
+             $this->codigo = "107 ".$this->status;
+             return false;
+         }
+         $TipoCambio = $Comprobante->getAttribute("TipoCambio");
+         if ($TipoCambio!=null) {
+             $this->status = "CRP108 El campo TipoCambio no se debe registrar en el CFDI.";
+             $this->codigo = "108 ".$this->status;
+             return false;
+         }
+         $Total = $Comprobante->getAttribute("Total");
+         if ($Total!="0") {
+             $this->status = "CRP109 El valor del campo Total debe ser cero '0'.";
+             $this->codigo = "109 ".$this->status;
+             return false;
+         }
+         $UsoCFDI = $Receptor->getAttribute("UsoCFDI");
+         if ($UsoCFDI!="P01") {
+             $this->status = "CRP110 El valor del campo UsoCFDI debe ser 'P01'.";
+             $this->codigo = "110 ".$this->status;
+             return false;
+         }
+         $Conceptos = $Comprobante->getElementsByTagName('Concepto');
+         if ($Conceptos->length != 1) {
+             $this->status = "CRP111 Solo debe existir un Concepto en el CFDI. ";
+             $this->codigo = "111 ".$this->status;
+             return false;
+         }
+         $Concepto = $Conceptos->item(0);
+         if ($Concepto->hasChildNodes()) {
+             $this->status = "CRP112 No se deben registrar apartados dentro de Conceptos";
+             $this->codigo = "112 ".$this->status;
+             return false;
+         }
+         $ClaveProdServ = $Concepto->getAttribute("ClaveProdServ");
+         if ($ClaveProdServ!="84111506") {
+             $this->status = "CRP113 El valor del campo ClaveProdServ debe ser '84111506'.";
+             $this->codigo = "113 ".$this->status;
+             return false;
+         }
+         $NoIdentificacion = $Concepto->getAttribute("NoIdentificacion");
+         if ($NoIdentificacion!=null) {
+             $this->status = "CRP114 El campo NoIdentificacion no se debe registrar en el CFDI.";
+             $this->codigo = "114 ".$this->status;
+             return false;
+         }
+         $Cantidad = $Concepto->getAttribute("Cantidad");
+         if ($Cantidad!="1") {
+             $this->status = "CRP115 El valor del campo Cantidad debe ser '1'.";
+             $this->codigo = "115 ".$this->status;
+             return false;
+         }
+         $ClaveUnidad = $Concepto->getAttribute("ClaveUnidad");
+         if ($ClaveUnidad!="ACT") {
+             $this->status = "CRP116  El valor del campo ClaveUnidad debe ser 'ACT'.";
+             $this->codigo = "116 ".$this->status;
+             return false;
+         }
+         $Unidad = $Concepto->getAttribute("Unidad");
+         if ($Unidad!=null) {
+             $this->status = "CRP117 El campo Unidad no se debe registrar en el CFDI.";
+             $this->codigo = "117 ".$this->status;
+             return false;
+         }
+         $Descripcion = $Concepto->getAttribute("Descripcion");
+         if ($Descripcion!="Pago") {
+             $this->status = "CRP118 El valor del campo Descripcion debe ser 'Pago'.";
+             $this->codigo = "118 ".$this->status;
+             return false;
+         }
+         $ValorUnitario = $Concepto->getAttribute("ValorUnitario");
+         if ($ValorUnitario!="0") {
+             $this->status = "CRP119 El valor del campo ValorUnitario debe ser cero '0'.";
+             $this->codigo = "119 ".$this->status;
+             return false;
+         }
+         $Importe = $Concepto->getAttribute("Importe");
+         if ($Importe!="0") {
+             $this->status = "CRP120 El valor del campo Importe debe ser cero '0'.";
+             $this->codigo = "120 ".$this->status;
+             return false;
+         }
+         $Descuento = $Concepto->getAttribute("Descuento");
+         if ($Descuento!=null) {
+             $this->status = "CRP121 El campo Descuento no se debe registrar en el CFDI.";
+             $this->codigo = "121 ".$this->status;
+             return false;
+         }
+         $Impuestos = $Comprobante->getElementsByTagName('Impuestos');
+         foreach ($Impuestos as $Impuesto) {
+             if ($Impuesto->parentNode->nodeName=="cfdi:Comprobante") {
+                 $this->status = "CRP122 No se debe registrar el apartado de Impuestos en el CFDI.";
                  $this->codigo = "122 ".$this->status;
                  return false;
+             }
+         }
+         foreach ($Pagos as $node) {
+            $FormaDePagoP = $node->getAttribute("FormaDePagoP");
+            if ($FormaDePagoP == "99") {
+               $this->status = "CRP201  El valor registrado debe ser diferente de 99.";
+               $this->codigo = "201 ".$this->status;
+               return false;
+            }
+           $MonedaP = $node->getAttribute("MonedaP");
+           if ($MonedaP=="XXX") {
+               $this->status = "CRP202 El campo MonedaP debe ser distinto de 'XXX'";
+               $this->codigo = "202 ".$this->status;
+               return false;
+           }
+           $TipoCambioP= $node->getAttribute("TipoCambioP");
+           if ($MonedaP!="MXN") {
+              if ($TipoCambioP==null || $TipoCambioP=="") {
+                 $this->status = "CRP203 El campo TipoCambioP se debe registrar.";
+                 $this->codigo = "203 ".$this->status;
+                 return false;
+              } 
+           }
+           if ($MonedaP=="MXN") {
+              if ($TipoCambioP!=null) {
+                 $this->status = "CRP204 El campo TipoCambioP no se debe registrar. ";
+                 $this->codigo = "204 ".$this->status;
+                 return false;
+              } 
+           }
+           $c_Moneda = $this->Obten_Catalogo("c_Moneda", $MonedaP);
+           $porc_moneda = (int)$c_Moneda["porcentaje"];
+           $Confirmacion = $Comprobante->getAttribute("Confirmacion");
+           /* TODO: Validar limites del tipo de cambio contra
+           * lo publicado */
+           $oficial = 20; // TODO: leer del lugar oficial
+           $inf = $oficial * (1 - $porc_moneda/100);
+           $sup = $oficial * (1 + $porc_moneda/100);
+	   $req_conf = false;
+           //echo "oficial=$oficial inf=$inf sup=$sup TipoCambioP".$TipoCambioP;
+	   if ($MonedaP!="MXN"){
+               if ($TipoCambioP < $inf || $TipoCambioP > $sup)  {
+                   $req_conf = true;
+                   if ($Confirmacion == null) {
+                       $this->status = "CRP205 Cuando el valor del campo TipoCambioP se encuentre fuera de los limites establecidos, debe existir el campo Confirmacion";
+                       $this->codigo = "205 ".$this->status;
+                       return false;
+                   }
                }
-               $FormaPago = $Comprobante->getAttribute("FormaPago");
-               $MetodoPago = $Comprobante->getAttribute("MetodoPago");
-               $CondicionesDePago = $Comprobante->getAttribute("CondicionesDePago");
-               $Descuento = $Comprobante->getAttribute("Descuento");
-               $TipoCambio = $Comprobante->getAttribute("TipoCambio");
-                $this->status = "PAG123 Los atributos mencionados no se deben registrar en cfdi:Comprobante:";
-               if ($FormaPago!="") $this->status.="FormaPago, ";
-               if ($MetodoPago!="") $this->status.="MetodoPago, ";
-               if ($CondicionesDePago!="") $this->status.="CondicionesDePago, ";
-               if ($Descuento!="") $this->status.="Descuento, ";
-               if ($TipoCambio!="") $this->status.="TipoCambio, ";
-               if ($FormaPago!="" OR $MetodoPago!="" OR $CondicionesDePago!="" OR
-                   $Descuento!="" OR $TipoCambio!="" ) {
-                   $this->codigo = "123 ".substr($this->status,0,-2);
+	   }
+           $Monto = $node->getAttribute("Monto");
+	   if ($Monto==0){
+               $this->status = "CRP207 El valor del campo Monto no es mayor que cero '0'.";
+               $this->codigo = "207 ".$this->status;
+               return false;
+           }
+           $dec_moneda = (int)$c_Moneda["decimales"];
+           $DoctosRelacionados = $node->getElementsByTagName('DoctoRelacionado');
+	   $w_timppagado = 0;
+	   foreach($DoctosRelacionados as $DoctoRelacionado){
+              $ImpPagado = $DoctoRelacionado->getAttribute("ImpPagado");
+              $MonedaDR = $DoctoRelacionado->getAttribute("MonedaDR");
+	      $w_imppagado = $ImpPagado;
+  	      if($MonedaDR != "MXN"){
+                 $TipoCambioDR = $DoctoRelacionado->getAttribute("TipoCambioDR");
+		 if($TipoCambioDR!=null){
+                    $w_imppagado = $ImpPagado * $TipoCambioDR;
+                    $w_imppagado = round($w_imppagado,$dec_moneda);
+		 }
+              }
+    	      $w_timppagado += $w_imppagado;  
+	   }
+           if ($w_timppagado>$Monto) { 
+               $this->status = "CRP206 La suma de los valores registrados en el campo ImpPagado de los apartados DoctoRelacionado no es menor o igual que el valor del campo Monto.";
+               $this->codigo = "206 ".$this->status;
+               return false;
+           }
+           $dec_monto = $this->cantidad_decimales($Monto);
+           if ($dec_monto > $dec_moneda )  {
+                 $this->status = "CRP208 El valor del campo Monto debe tener hasta la cantidad de decimales que soporte la moneda registrada en el campo MonedaP.";
+                 $this->codigo = "208 ".$this->status;
+                 return false;
+           }
+	   $w_montocambio = $Monto;
+	   if ($MonedaP != "MXN") {//Considerando Tipo de Cambio Convertimos a Pesos
+	       $w_montocambio = $Monto * $TipoCambioP; //Obtener TipoCambioP en MXN
+	       $w_montocambio = round($w_montocambio,$dec_moneda);
+	   } 
+	   //$TopeMonto = $c_TipoDeComprobante["unidad"];
+	   $TopeMonto = 20000000;//TODO ¿De cual campo del catalogo lo obtendremos?
+           if ($w_montocambio>$TopeMonto){
+               $req_conf = true;
+               if ($Confirmacion == null) {
+                   $this->status = "CRP209 Cuando el valor del campo Monto se encuentre fuera de los limites establecidos, debe existir el campo Confirmacion";
+                   $this->codigo = "209 ".$this->status;
                    return false;
                }
-               $Total = $Comprobante->getAttribute("Total");
-               if ($Total!="0") {
-                 $this->status = "PAG124 ; El valor de Total debe de ser '0'  ";
-                 $this->codigo = "124 ".$this->status;
-                 return false;
-               }
-
-              $Conceptos = $Comprobante->getElementsByTagName('Concepto');
-              if ($Conceptos->length != 1) {
-                  $this->status = "PAG125 El nodo Comprobante.Conceptos.Concepto,  1 Solo puede registrarse un nodo concepto, sin elementos hijo.";
-                  $this->codigo = "125 ".$this->status;
+           } 
+           $RfcEmisorCtaOrd = $node->getAttribute("RfcEmisorCtaOrd");
+	   if ($RfcEmisorCtaOrd !=null) {
+	       if ($RfcEmisorCtaOrd != "XEXX010101000") {
+                   $row= $this->lee_l_rfc($RfcEmisorCtaOrd);
+                   if (sizeof($row)==0){
+                       $this->status = "CRP210 El RFC del campo RfcEmisorCtaOrd no se encuentra en la lista de RFC.";
+                       $this->codigo = "210 ".$this->status;
+                       return false;
+                   }
+	       }
+           }
+	   $NomBancoOrdExt = $node->getAttribute("NomBancoOrdExt");
+           if ($RfcEmisorCtaOrd == "XEXX010101000" ){
+              if ($NomBancoOrdExt =="" || $NomBancoOrdExt == null) {
+                       $this->status = "CRP211 El campo NomBancoOrdExt se debe registrar.";
+                       $this->codigo = "211 ".$this->status;
+                       return false;
+	      }
+	   } 
+	   $CtaOrdenante = $node->getAttribute("CtaOrdenante");
+	   $RfcEmisorCtaBen = $node->getAttribute("RfcEmisorCtaBen");
+	   $CtaBeneficiario = $node->getAttribute("CtaBeneficiario");
+           if ($FormaDePagoP != "02" && $FormaDePagoP != "03" && $FormaDePagoP != "04" && 
+               $FormaDePagoP != "05" && $FormaDePagoP != "06" && $FormaDePagoP != "28" && 
+               $FormaDePagoP != "29") {
+              if ($CtaOrdenante != null) {
+                  $this->status = "CRP212 El campo CtaOrdenante no se debe registrar.";
+                  $this->codigo = "212 ".$this->status;
                   return false;
-              }
-              $Concepto = $Conceptos->item(0);
-              if ($Concepto->hasChildNodes()) {
-                $this->status = "PAG125 El nodo Comprobante.Conceptos.Concepto, 2 Solo puede registrarse un nodo concepto, sin elementos hijo.";
-                $this->codigo = "125 ".$this->status;
-                return false;
-              }
-              $ClaveProdServ = $Concepto->getAttribute("ClaveProdServ");
-              if ($ClaveProdServ!="84111506") {
-                $this->status = "PAG126 El nodo Comprobante.Conceptos.Concepto.ClaveProdServ, el valor debe de ser '84111506' ";
-                $this->codigo = "126 ".$this->status;
-                return false;
-              }
-              $NoIdentificacion = $Concepto->getAttribute("NoIdentificacion");
-              if ($NoIdentificacion!="") {
-                $this->status = "PAG127 El nodo Comprobante.Conceptos.Concepto.NoIdentificacion, se debe omitir  ";
-                $this->codigo = "127 ".$this->status;
-                return false;
-              }
-              $Cantidad = $Concepto->getAttribute("Cantidad");
-              if ($Cantidad!="1") {
-                $this->status = "PAG128 El nodo Comprobante.Conceptos.Concepto.Cantidad, debe ser '1'  ";
-                $this->codigo = "128 ".$this->status;
-                return false;
-              }
-              $Unidad = $Concepto->getAttribute("Unidad");
-              if ($Unidad!="ACT") {
-                $this->status = "PAG129 El nodo Comprobante.Conceptos.Concepto.Unidad, debe ser 'ACT'  ";
-                $this->codigo = "129 ".$this->status;
-                return false;
-              }
-              $Descripcion = $Concepto->getAttribute("Descripcion");
-              if ($Descripcion!="Pago") {
-                $this->status = "PAG130 El nodo Comprobante.Conceptos.Concepto.Descripcion, debe ser 'Pago'  ";
-                $this->codigo = "130 ".$this->status;
-                return false;
-              }
-              $ValorUnitario = $Concepto->getAttribute("ValorUnitario");
-              if ($ValorUnitario!="0") {
-                $this->status = "PAG131 El nodo Comprobante.Conceptos.Concepto.ValorUnitario, debe ser '0'  ";
-                $this->codigo = "131 ".$this->status;
-                return false;
-              }
-              $Importe = $Concepto->getAttribute("Importe");
-              if ($Importe!="0") {
-                $this->status = "PAG132 El nodo Comprobante.Conceptos.Concepto.ValorImporte, debe ser '0'  ";
-                $this->codigo = "132 ".$this->status;
-                return false;
-              }
-              $Descuento = $Concepto->getAttribute("Descuento");
-              if ($Descuento!="") {
-                $this->status = "PAG133 El nodo Comprobante.Conceptos.Concepto.Descuento, se debe omitir  ";
-                $this->codigo = "133 ".$this->status;
-                return false;
-              }
-              $Impuestos = $Concepto->getElementsByTagName('Impuestos');
-              if ($Impuestos->length > 0) {
-                $this->status = "PAG134 El nodo Comprobante.Conceptos.Concepto.Impuestos, este nodo no se debe registrar en el CFDI  ";
-                $this->codigo = "134 ".$this->status;
-                return false;
-              }
-
-           } // si es comprobante P 
-        } // termina version 3.3
-
-        if ($version == "3.3" OR  $version == "3.2") {
-           if ($TipoDeComprobante=="T" OR $TipoDeComprobante=="traslado") {
-               $pagos_n = $Comprobante->getElementsByTagName('Pagos');
-               if ($pagos_n->length !=0 ) {
-                 $this->status = "PAG137 El nodo Comprobante.Complemento.Pagos, no debe de existir este complemento  ";
-                 $this->codigo = "137 ".$this->status;
-                 return false;
+	      }
+              if ($RfcEmisorCtaOrd != null) {
+                  $this->status = "CRP238 El campo RfcEmisorCtaOrd no se debe registrar.";
+                  $this->codigo = "238 ".$this->status;
+                  return false;
+	      }
+	   } 
+           if ($CtaOrdenante !=null) {
+	       $Patron_CO = "";
+	       switch ($FormaDePagoP) {
+		  case "02":
+		     $Patron_CO = "[0-9]{11}|[0-9]{18}";
+		     break;
+		  case "03":
+		     $Patron_CO = "[0-9]{10}|[0-9]{16}|[0-9]{18}";
+		     break;
+		  case "04":
+		     $Patron_CO = "[0-9]{16}";
+		     break;
+		  case "05":
+		     $Patron_CO = "[0-9]{10,11}|[0-9]{15,16}|[0-9]{18}|[A-Z0-9_]{10,50}";
+		     break;
+		  case "06":
+		     $Patron_CO = "[0-9]{10}";
+		     break;
+		  case "28":
+		     $Patron_CO = "[0-9]{16}";
+		     break;
+		  case "29":
+		     $Patron_CO = "[0-9]{15,16}";
+		     break;
+	       }  
+               $regex = $Patron_CO; //TODO de donde obtengo el patron de bloqueo
+               $aux = "/^$regex$/A";
+               $ok = preg_match($aux,$CtaOrdenante);
+               if (!$ok) {
+                   $this->status = "CRP213 El campo CtaOrdenante no cumple con el patron requerido.";
+                   $this->codigo = "213 ".$this->status;
+                   return false;
                }
-           }
-           if ($TipoDeComprobante=="I" OR $TipoDeComprobante=="ingreso" OR 
-               $TipoDeComprobante=="E" OR $TipoDeComprobante=="egreso") {
-               $pagos_n = $Comprobante->getElementsByTagName('Pagos');
-               $Complemento_SPEI = $Comprobante->getElementsByTagName('Complemento_SPEI');
-               $Nomina = $Comprobante->getElementsByTagName('Nomina');
-               if ($pagos_n->length >0 AND ($Complemento_SPEI->length >0 OR $Nomina->length >0)) {
-                 $this->status = "PAG138 El nodo Comprobante.Complemento.Pagos, no debe de coexistir  con el Complemento_SPEI y/o Nomina ";
-                 $this->codigo = "138 ".$this->status;
+	   }
+           if ($FormaDePagoP != "02" && $FormaDePagoP != "03" && $FormaDePagoP != "04" && 
+               $FormaDePagoP != "05" && $FormaDePagoP != "28" && 
+               $FormaDePagoP != "29") {
+              if ($RfcEmisorCtaBen != null) {
+                  $this->status = "CRP214 El campo RfcEmisorCtaBen no se debe registrar.";
+                  $this->codigo = "214 ".$this->status;
+                  return false;
+	      }
+              if ($CtaBeneficiario != null) {
+                  $this->status = "CRP215 El campo CtaBeneficiario no se debe registrar.";
+                  $this->codigo = "215 ".$this->status;
+                  return false;
+	      }
+	   } 
+           $TipoCadPago = $node->getAttribute("TipoCadPago");
+	   if ($FormaDePagoP != "03"){
+               if ($TipoCadPago != null) {
+                   $this->status = "CRP216 El campo TipoCadPago no se debe registrar. ";
+                   $this->codigo = "216 ".$this->status;
+                   return false;
+	       }
+	   }
+	   foreach($DoctosRelacionados as $DoctoRelacionado){
+              $MonedaDR = $DoctoRelacionado->getAttribute("MonedaDR");
+	      if ($MonedaDR=="XXX") {
+                 $this->status = "CRP217 El valor del campo MonedaDR debe ser distinto de 'XXX'";
+                 $this->codigo = "217 ".$this->status;
                  return false;
-               }
-           }
-        }
-        if ($version == "3.3" AND $TipoDeComprobante=="P") {
-           foreach ($Complemento->childNodes as $node) {
-              if ($node->nodeType == XML_ELEMENT_NODE) {
-                  if ($node->nodeName == "tfd:TimbreFiscalDigital" ||
-                      $node->nodeName == "pago10:Pagos" ||
-                      $node->nodeName == "cfdi:RegistroFiscal") {
-                  } else {
-                      $this->status = "PAG139 El nodo Comprobante.Complemento.Pagos solo puede coexistir con los complementos Timbre Fiscal Digital, CFDI registro fiscal.";
-                      $this->codigo = "139 ".$this->status;
+              }
+              $TipoCambioDR = $DoctoRelacionado->getAttribute("TipoCambioDR");
+	      if ($MonedaDR != $MonedaP){
+	          if ($TipoCambioDR == null || $TipoCambioDR == ""){
+                      $this->status = "CRP218 El campo TipoCambioDR se debe registrar. ";
+                      $this->codigo = "218 ".$this->status;
                       return false;
-                  }
-              }
-           } // Buscar que complementos existen
-        }
-        $Fecha = new Datetime($Comprobante->getAttribute("Fecha"));
-           //    echo "fechapago = ".$Fecha->format('d');
-        foreach ($Pagos as $node) {
-           $FechaPago = new Datetime($node->getAttribute("FechaPago"));
-         //      echo "fechapago = ".$FechaPago->format('d');
-           if ($FechaPago > $Fecha) {
-               $this->status = "PAG140 El valor del atributo cfdi:Fecha no es menor o igual al valor del atributo FechaPago.";
-               $this->codigo = "140 ".$this->status;
-               return false;
-           }
-           if ($FechaPago < $Fecha) {
-               $Ypago=$FechaPago->format('Y');
-               $Mpago=$FechaPago->format('m');
-               $Yfecha=$Fecha->format('Y');
-               $Mfecha=$Fecha->format('m');
-               $Dfecha=$Fecha->format('d');
-               $YMpago=($Ypago * 100) + $Mpago;
-               $YMfecha=($Yfecha * 100) + $Mfecha;
-               if ($Mfecha==1){
-                    $YMfecha2=(($Yfecha * 100) - 1) + 12 ; 
-               }else{
-                   $YMfecha2=($Yfecha * 100) + $Mfecha - 1 ;
+		  } 	 
+	      }
+	      if ($MonedaDR == $MonedaP){
+	          if ($TipoCambioDR != null){
+                      $this->status = "CRP219 El campo TipoCambioDR no se debe registrar.";
+                      $this->codigo = "219 ".$this->status;
+                      return false;
+		  } 	 
+	      }
+	      if ($MonedaDR == "MXN" && $MonedaP != "MXN"){//TODO Revisar si MEX es correcto, segun yo MXN
+	          if ($TipoCambioDR != "1"){
+                      $this->status = "CRP220 El campo TipoCambioDR debe ser '1'.";
+                      $this->codigo = "220 ".$this->status;
+                      return false;
+		  } 	 
+	      }
+              $ImpSaldoAnt = $DoctoRelacionado->getAttribute("ImpSaldoAnt");
+	      if($ImpSaldoAnt != null){//TODO Si es opcional el campo primero valido que exista, despues > 0
+		 if($ImpSaldoAnt<=0){
+                    $this->status = "CRP221 El campo ImpSaldoAnt debe mayor a cero.";
+                    $this->codigo = "221 ".$this->status;
+                    return false;
+		 }
+	      }
+	      $c_MonedaDR = $this->Obten_Catalogo("c_Moneda", $MonedaDR); 
+              $dec_monedaDR = (int)$c_MonedaDR["decimales"];
+	      if($ImpSaldoAnt!=null){
+                 $dec_impsaldoant = $this->cantidad_decimales($ImpSaldoAnt);
+                 if ($dec_impsaldoant > $dec_monedaDR )  {
+                       $this->status = "CRP222 El valor del campo ImpSaldoAnt debe tener hasta la cantidad de decimales que soporte la moneda registrada en el campo MonedaDR.";
+                       $this->codigo = "222 ".$this->status;
+                       return false;
+                 }
+	      }
+              $ImpPagado = $DoctoRelacionado->getAttribute("ImpPagado");
+	      if($ImpPagado != null){
+		 if($ImpPagado<=0){
+                    $this->status = "CRP223 El campo ImpPagado debe mayor a cero.";
+                    $this->codigo = "223 ".$this->status;
+                    return false;
+		 }
+	      }
+	      if($ImpPagado!=null){
+                 $dec_imppagado = $this->cantidad_decimales($ImpPagado);
+                 if ($dec_imppagado > $dec_monedaDR )  {
+                       $this->status = "CRP224 El valor del campo ImpPagado debe tener hasta la cantidad de decimales que soporte la moneda registrada en el campo MonedaDR.";
+                       $this->codigo = "224 ".$this->status;
+                       return false;
+                 }
+	      }
+              $ImpSaldoInsoluto = $DoctoRelacionado->getAttribute("ImpSaldoInsoluto");
+	      if($ImpSaldoInsoluto!=null){
+                 $dec_impsaldoinsoluto = $this->cantidad_decimales($ImpSaldoInsoluto);
+                 if ($dec_impsaldoinsoluto > $dec_monedaDR )  {
+                       $this->status = "CRP225 El valor del campo ImpSaldoInsoluto debe tener hasta la cantidad de decimales que soporte la moneda registrada en el campo MonedaDR.";
+                       $this->codigo = "225 ".$this->status;
+                       return false;
+                 }
+	      }
+              $MetodoDePagoDR= $DoctoRelacionado->getAttribute("MetodoDePagoDR");
+              $ImpSaldoAnt = $DoctoRelacionado->getAttribute("ImpSaldoAnt");
+      	      if ($MetodoDePagoDR =="PPD"){
+		  if($ImpSaldoAnt == null || $ImpSaldoAnt == ""){
+                     $this->status = "CRP234 El campo ImpSaldoAnt se debe registrar.";
+                     $this->codigo = "234 ".$this->status;
+                     return false;
+		  }	  
+	      }
+	      if($ImpPagado == null || $ImpPagado == ""){
+		 if($DoctosRelacionados->length > 1 || 
+		   ($DoctosRelacionados->length == 1 && $TipoCambioDR != "")){
+                    $this->status = "CRP235 El campo ImpPagado se debe registrar. ";
+                    $this->codigo = "235 ".$this->status;
+                    return false;
+		 }
+	      }
+	      if($ImpSaldoInsoluto != null){
+		 if($ImpSaldoInsoluto<0 || (($ImpSaldoAnt - $ImpPagado != $ImpSaldoInsoluto))){
+                    $this->status = "CRP226 El campo ImpSaldoInsoluto debe ser mayor o igual a cero y calcularse con la suma de los campos ImSaldoAnt menos el ImpPagado o el Monto";
+                    $this->codigo = "226 ".$this->status;
+                    return false;
+		 }
+	      }
+              $NumParcialidad= $DoctoRelacionado->getAttribute("NumParcialidad");
+      	      if ($MetodoDePagoDR=="PPD"){
+		  if($NumParcialidad == null || $NumParcialidad == ""){
+                     $this->status = "CRP233 El campo NumParcialidad se debe registrar.";
+                     $this->codigo = "233 ".$this->status;
+                     return false;
+		  }	  
+	      }
+              $ImpSaldoInsoluto= $DoctoRelacionado->getAttribute("ImpSaldoInsoluto");
+      	      if ($MetodoDePagoDR =="PPD"){
+		  if($ImpSaldoInsoluto == null || $ImpSaldoInsoluto == ""){
+                     $this->status = "CRP236 El campo ImpSaldoInsoluto se debe registrar.";
+                     $this->codigo = "236 ".$this->status;
+                     return false;
+		  }	  
+	      }
+
+	   }//End ForEach DoctosRelacionados 
+           $CertPago = $node->getAttribute("CertPago");
+           if ($TipoCadPago != null) {
+               if ($CertPago == null || $CertPago == "") {
+                   $this->status = "CRP227 El campo CertPago se debe registrar.";
+                   $this->codigo = "227 ".$this->status;
+                   return false;
+	       }
+	   }
+           if ($TipoCadPago == null || $TipoCadPago == "") {
+               if ($CertPago != "") {
+                   $this->status = "CRP228 El campo CertPago no se debe registrar.";
+                   $this->codigo = "228 ".$this->status;
+                   return false;
+	       }
+	   }
+           $CadPago = $node->getAttribute("CadPago");
+           if ($TipoCadPago != null) {
+               if ($CadPago == null || $CadPago == "") {
+                   $this->status = "CRP229 El campo CadPago se debe registrar.";
+                   $this->codigo = "229 ".$this->status;
+                   return false;
+	       }
+	   }
+           if ($TipoCadPago == null || $TipoCadPago == "") {
+               if ($CadPago != "") {
+                   $this->status = "CRP230 El campo CadPago no se debe registrar.";
+                   $this->codigo = "230 ".$this->status;
+                   return false;
+	       }
+	   }
+           $SelloPago = $node->getAttribute("SelloPago");
+           if ($TipoCadPago != null) {
+               if ($SelloPago == "" || $SelloPago == null) {
+                   $this->status = "CRP231 El campo SelloPago se debe registrar.";
+                   $this->codigo = "231 ".$this->status;
+                   return false;
+	       }
+	   }
+           if ($TipoCadPago == "" || $TipoCadPago == null) {
+               if ($SelloPago != "") {
+                   $this->status = "CRP232 El campo SelloPago no se debe registrar.";
+                   $this->codigo = "232 ".$this->status;
+                   return false;
+	       }
+	   }
+           if ($CtaBeneficiario != null) {
+	       $Patron_CB ="[0-9]{11}|[0-9]{18}";
+               $regex = $Patron_CB; //TODO de donde obtengo el patron de bloqueo
+               $aux = "/^$regex$/A";
+               $ok = preg_match($aux,$CtaBeneficiario);
+               if (!$ok) {
+                   $this->status = "CRP239 El campo CtaBeneficiario no cumple con el patron requerido.";
+                   $this->codigo = "239 ".$this->status;
+                   return false;
                }
-     //          echo 'YMpago'.$YMpago.'YMfecha'.$YMfecha.'YMfecha2'.$YMfecha2.'dfecha'.$Dfecha;
-               if (($YMpago == $YMfecha) OR ($YMpago == $YMfecha2 AND $Dfecha <= 10)){
-               }else{ 
-                  $this->status = "PAG140-2 El valor aÃo-mes de Pago:FechaPago debe de ser igual al valor aÃ±o-mes de CFDI:Fech";
-                  $this->codigo = "140-2 ".$this->status;
-                  return false;
-               }
-           }
-        } // fin foreach
+	   }
 
-         
-        foreach ($Pagos as $node) {
-           $FormaDePagoP = $node->getAttribute("FormaDePagoP");
-           
-           if ($FormaDePagoP == "99") {
-              $this->status = " PAG141 El valor del atributo Complemento.Pagos.Pago.FormaDePagoP, debe de ser diferente de '99'  ";
-              $this->codigo = "141".$this->status;
-              return false;
-           }
-           $ok = $this->Checa_Catalogo("c_FormaDePagoP",$FormaDePagoP);
-           if (!$ok) {
-               $this->status = "PAG141-2 El valor del atributo Complemento.Pagos.Pago.FormaDePagoP no cumple con un valor del catalogo c_FormaDePagoP";
-               $this->codigo = "141-2  ".$this->status;
-               return false;
-           }
-           if ($FormaDePagoP == "01") {
-              $this->status = " PAG141 El valor del atributo Complemento.Pagos.Pago.FormaDePagoP, debe de ser diferente de '99'  ";
-              $this->codigo = "141".$this->status;
-              return false;
-           }
-           $ok = $this->Checa_Catalogo("c_FormaDePagoP",$FormaDePagoP);
-        }
-
-         
-
-        
-
-
-
-
-        $this->status = "LLEGO HASTA ABAJO!!!!";
-        $this->codigo = "0 ".$this->status;
-        return false;
-        $this->status = "Validacion de semantica pagos correcta";
+	   
+	 }//End ForEach Pagos 
+         $Impuestos = $pagos->getElementsByTagName('Impuestos');
+         if ($Impuestos->length > 0) {
+             $this->status = "CRP237 No debe existir el apartado de Impuestos.";
+             $this->codigo = "237 ".$this->status;
+             return false;
+         }
+        $this->status = "CPR000 Validacion de semantica pagos correcta";
         $this->codigo = "0 ".$this->status;
         return $ok;
-
       }
+
     // {{{ Checa_Catalogo
     private function Checa_Catalogo($catalogo,$llave,$prm1="",$prm2="",$prm3="") {
         $ok = true;
@@ -511,6 +582,7 @@ class Pagos10 {
             $l = $this->conn->qstr($rfc);
             $qry = "select * from pac_l_rfc where rfc_rfc = $l";
             $row= $this->conn->GetRow($qry);
+
         } else { // NO hay registros de RFC
             // No valida hasta que el SAT publica lista
             $row = array("rfc_rfc"=>$rfc,
@@ -533,4 +605,18 @@ class Pagos10 {
         $this->cuenta = 1; // Siempre hay registros
     }
     // }}}
+    // {{{ Checa_Confirmacion($Confirmacion)
+    private function Checa_Confirmacion($Confirmacion) {
+        $rs = false;
+        $num = $this->conn->qstr($Confirmacion);
+        $qry = "select * from pac_confirmacion where llave = $num";
+        $rs = $this->conn->getrow($qry);
+        if ($rs===FALSE) return 0;
+        if (sizeof($rs)==0) return 0;
+        $uuid = trim($rs['uuid']);
+        if (strlen($uuid)>10) return 2;
+        return 1;
+    }
+    // }}}
+
 }
