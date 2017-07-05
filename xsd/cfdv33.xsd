@@ -4,10 +4,11 @@
   <xs:import namespace="http://www.sat.gob.mx/sitio_internet/cfd/tipoDatos/tdCFDI" schemaLocation="tdCFDI.xsd"/>
 
     <xs:import namespace="http://www.sat.gob.mx/TimbreFiscalDigital" schemaLocation="TimbreFiscalDigital11.xsd"/>
-    <xs:import namespace="http://www.sat.gob.mx/detallista" schemaLocation="detallista.xsd"/>
     <xs:import namespace="http://www.sat.gob.mx/nomina12" schemaLocation="nomina12.xsd"/>
     <xs:import namespace="http://www.sat.gob.mx/Pagos" schemaLocation="Pagos10.xsd"/>
     <xs:import namespace="http://www.sat.gob.mx/divisas" schemaLocation="Divisas.xsd"/>
+    <xs:import namespace="http://www.sat.gob.mx/implocal" schemaLocation="implocal.xsd"/>
+    <xs:import namespace="http://www.sat.gob.mx/leyendasFiscales" schemaLocation="leyendasFisc.xsd"/>
     <xs:import namespace="http://www.sat.gob.mx/ComercioExterior11" schemaLocation="ComercioExterior11.xsd"/>
 
     <xs:element name="Comprobante">
