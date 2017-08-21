@@ -48,6 +48,20 @@
       <xs:enumeration value="141"/>
       <xs:enumeration value="143"/>
       <xs:enumeration value="145"/>
+      <xs:enumeration value="147"/>
+      <xs:enumeration value="148"/>
+      <xs:enumeration value="149"/>
+      <xs:enumeration value="150"/>
+      <xs:enumeration value="151"/>
+      <xs:enumeration value="152"/>
+      <xs:enumeration value="153"/>
+      <xs:enumeration value="154"/>
+      <xs:enumeration value="155"/>
+      <xs:enumeration value="156"/>
+      <xs:enumeration value="157"/>
+      <xs:enumeration value="158"/>
+      <xs:enumeration value="159"/>
+      <xs:enumeration value="160"/>
       <xs:enumeration value="166"/>
       <xs:enumeration value="168"/>
       <xs:enumeration value="600"/>
@@ -92,9 +106,9 @@
       <xs:enumeration value="655"/>
       <xs:enumeration value="656"/>
       <xs:enumeration value="659"/>
+      <xs:enumeration value="670"/>
       <xs:enumeration value="901"/>
       <xs:enumeration value="902"/>
-      <xs:enumeration value="670"/>
     </xs:restriction>
   </xs:simpleType>
   <xs:simpleType name="c_OrigenRecurso">
@@ -117,6 +131,7 @@
       <xs:enumeration value="07"/>
       <xs:enumeration value="08"/>
       <xs:enumeration value="09"/>
+      <xs:enumeration value="10"/>
       <xs:enumeration value="99"/>
     </xs:restriction>
   </xs:simpleType>
@@ -162,6 +177,83 @@
       <xs:enumeration value="021"/>
       <xs:enumeration value="022"/>
       <xs:enumeration value="023"/>
+      <xs:enumeration value="024"/>
+      <xs:enumeration value="025"/>
+      <xs:enumeration value="026"/>
+      <xs:enumeration value="027"/>
+      <xs:enumeration value="028"/>
+      <xs:enumeration value="029"/>
+      <xs:enumeration value="030"/>
+      <xs:enumeration value="031"/>
+      <xs:enumeration value="032"/>
+      <xs:enumeration value="033"/>
+      <xs:enumeration value="034"/>
+      <xs:enumeration value="035"/>
+      <xs:enumeration value="036"/>
+      <xs:enumeration value="037"/>
+      <xs:enumeration value="038"/>
+      <xs:enumeration value="039"/>
+      <xs:enumeration value="040"/>
+      <xs:enumeration value="041"/>
+      <xs:enumeration value="042"/>
+      <xs:enumeration value="043"/>
+      <xs:enumeration value="044"/>
+      <xs:enumeration value="045"/>
+      <xs:enumeration value="046"/>
+      <xs:enumeration value="047"/>
+      <xs:enumeration value="048"/>
+      <xs:enumeration value="049"/>
+      <xs:enumeration value="050"/>
+      <xs:enumeration value="051"/>
+      <xs:enumeration value="052"/>
+      <xs:enumeration value="053"/>
+      <xs:enumeration value="054"/>
+      <xs:enumeration value="055"/>
+      <xs:enumeration value="056"/>
+      <xs:enumeration value="057"/>
+      <xs:enumeration value="058"/>
+      <xs:enumeration value="059"/>
+      <xs:enumeration value="060"/>
+      <xs:enumeration value="061"/>
+      <xs:enumeration value="062"/>
+      <xs:enumeration value="063"/>
+      <xs:enumeration value="064"/>
+      <xs:enumeration value="065"/>
+      <xs:enumeration value="066"/>
+      <xs:enumeration value="067"/>
+      <xs:enumeration value="068"/>
+      <xs:enumeration value="069"/>
+      <xs:enumeration value="070"/>
+      <xs:enumeration value="071"/>
+      <xs:enumeration value="072"/>
+      <xs:enumeration value="073"/>
+      <xs:enumeration value="074"/>
+      <xs:enumeration value="075"/>
+      <xs:enumeration value="076"/>
+      <xs:enumeration value="077"/>
+      <xs:enumeration value="078"/>
+      <xs:enumeration value="079"/>
+      <xs:enumeration value="080"/>
+      <xs:enumeration value="081"/>
+      <xs:enumeration value="082"/>
+      <xs:enumeration value="083"/>
+      <xs:enumeration value="084"/>
+      <xs:enumeration value="085"/>
+      <xs:enumeration value="086"/>
+      <xs:enumeration value="087"/>
+      <xs:enumeration value="088"/>
+      <xs:enumeration value="089"/>
+      <xs:enumeration value="090"/>
+      <xs:enumeration value="091"/>
+      <xs:enumeration value="092"/>
+      <xs:enumeration value="093"/>
+      <xs:enumeration value="094"/>
+      <xs:enumeration value="095"/>
+      <xs:enumeration value="096"/>
+      <xs:enumeration value="097"/>
+      <xs:enumeration value="098"/>
+      <xs:enumeration value="099"/>
+      <xs:enumeration value="100"/>
     </xs:restriction>
   </xs:simpleType>
   <xs:simpleType name="c_TipoHoras">
@@ -208,7 +300,7 @@
       <xs:enumeration value="002"/>
       <xs:enumeration value="003"/>
       <xs:enumeration value="004"/>
-	  <xs:enumeration value="999"/>
+      <xs:enumeration value="999"/>
     </xs:restriction>
   </xs:simpleType>
   <xs:simpleType name="c_TipoPercepcion">
@@ -254,8 +346,8 @@
       <xs:enumeration value="047"/>
       <xs:enumeration value="048"/>
       <xs:enumeration value="049"/>
-
-  </xs:restriction>
+      <xs:enumeration value="050"/>
+    </xs:restriction>
   </xs:simpleType>
   <xs:simpleType name="c_TipoRegimen">
     <xs:restriction base="xs:string">
@@ -270,6 +362,7 @@
       <xs:enumeration value="09"/>
       <xs:enumeration value="10"/>
       <xs:enumeration value="11"/>
+      <xs:enumeration value="12"/>
       <xs:enumeration value="99"/>
     </xs:restriction>
   </xs:simpleType>
@@ -281,6 +374,7 @@
       <xs:enumeration value="3"/>
       <xs:enumeration value="4"/>
       <xs:enumeration value="5"/>
-    </xs:restriction>
+      <xs:enumeration value="99"/>
+	  </xs:restriction>
   </xs:simpleType>
 </xs:schema>
