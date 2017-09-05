@@ -38,7 +38,6 @@
     <xs:import namespace="http://www.sat.gob.mx/EstadoDeCuentaCombustible" schemaLocation="ecc11.xsd"/>
     <xs:import namespace="http://www.sat.gob.mx/ine" schemaLocation="ine10.xsd"/>
     <xs:import namespace="http://www.sat.gob.mx/ComercioExterior" schemaLocation="ComercioExterior10.xsd"/>
-    <xs:import namespace="http://www.sat.gob.mx/ComercioExterior11" schemaLocation="ComercioExterior11.xsd"/>
 
     <xs:import namespace="http://www.sat.gob.mx/Nomina12" schemaLocation="nomina12.xsd"/>
     <xs:import namespace="http://www.sat.gob.mx/Pagos" schemaLocation="Pagos10.xsd"/>

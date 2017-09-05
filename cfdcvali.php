@@ -103,7 +103,7 @@ if (!mb_check_encoding($texto,"utf-8")) {
     echo "<h3>Error en XML, no esta en UTF-8!</h3>";
 }
 $nuevo = utf8_decode($texto);
-if (mb_check_encoding($nuevo,"utf-8")) {
+if (mb_check_encoding($nuevo,"utf-8") && $nuevo != $texto) {
     echo "<h3>Sigue siendo utf8, usa decode</h3>";
     $texto = $nuevo;
 }
@@ -121,21 +121,31 @@ $texto = preg_replace('{<cfdi:Addenda.*/cfdi:Addenda>}is', '<cfdi:Addenda/>', $t
  *
  * Son gratuitos se obtienen de pear.php.net
  * http://pear.php.net/package/XML_Beautifier/
- * http://pear.php.net/package/Text_Highlighter/
  *
  * Alguna dependencia de pear se baja del mismo pear
  * http://pear.php.net/package/XML_Parser
  * */
-require_once 'XML/Beautifier.php';
-require_once 'Text/Highlighter.php';
+require_once 'lib/XML/Beautifier.php';
 $fmt = new XML_Beautifier();
 $fmt->setOption("multilineTags", TRUE);
 $paso = $fmt->formatString($texto);
 if (substr($paso,0,10)!="XML_Parser") $texto=$paso; // XML correctamente formado
-$hl =& Text_Highlighter::factory('XML',array('numbers'=>HL_NUMBERS_TABLE));
-echo "<div style='height:300px; overflow:auto';";
-echo $hl->highlight($texto);
-echo "</div>";
+?>
+<div align=left>
+<script src="/fortiz/code/codemirror/lib/codemirror.js"></script>
+<link rel="stylesheet" href="/fortiz/code/codemirror/lib/codemirror.css">
+<script src="/fortiz/code/codemirror/mode/xml/xml.js"></script>
+<textarea rows=40 cols=120 name=texto id=texto>
+<?php echo $texto; ?>
+</textarea>
+<script>
+var myCodeMirror = CodeMirror.fromTextArea(texto, {
+        lineNumbers: true,
+        readOnly: true,
+        mode: "xml"
+      });
+</script>
+<?php
 /////////////////////////////////////////////////////////////////////////////
 
 libxml_use_internal_errors(true);   // Gracias a Salim Giacoman
