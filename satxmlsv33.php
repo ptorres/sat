@@ -25,7 +25,7 @@
 // +---------------------------------------------------------------------------|
 // | Autor: Fernando Ortiz <fortiz@lacorona.com.mx>                            |
 // +---------------------------------------------------------------------------+
-// |31/mar/2017  Se toma como base el programa de la version 3.2               |
+// |31/mar/2017  Se toma como base el programa de la version 2.3               |
 // |                                                                           |
 // +---------------------------------------------------------------------------+
 //
@@ -62,6 +62,7 @@ global $xml, $ret;
 // print_r($arr);
 $xml = new DOMdocument("1.0","UTF-8");
 satxmlsv33_generales($arr, $edidata, $dir,$nodo,$addenda);
+satxmlsv33_relacionados($arr, $edidata, $dir,$nodo,$addenda);
 satxmlsv33_emisor($arr, $edidata, $dir,$nodo,$addenda);
 satxmlsv33_receptor($arr, $edidata, $dir,$nodo,$addenda);
 satxmlsv33_conceptos($arr, $edidata, $dir,$nodo,$addenda);
@@ -95,6 +96,13 @@ if ($addenda=="detallista") {
                           "xmlns:xsi"=>"http://www.w3.org/2001/XMLSchema-instance",
                           "xmlns:cce11"=>"http://www.sat.gob.mx/ComercioExterior11",
                           "xsi:schemaLocation"=>"http://www.sat.gob.mx/cfd/3 http://www.sat.gob.mx/sitio_internet/cfd/3/cfdv33.xsd http://www.sat.gob.mx/ComercioExterior11 http://www.sat.gob.mx/sitio_internet/cfd/ComercioExterior/ComercioExterior11.xsd"
+                         )
+                );
+} elseif ($addenda=="pago") {
+    satxmlsv33_cargaAtt($root, array("xmlns:cfdi"=>"http://www.sat.gob.mx/cfd/3",
+                          "xmlns:xsi"=>"http://www.w3.org/2001/XMLSchema-instance",
+                          "xmlns:pago10"=>"http://www.sat.gob.mx/Pagos",
+                          "xsi:schemaLocation"=>"http://www.sat.gob.mx/cfd/3 http://www.sat.gob.mx/sitio_internet/cfd/3/cfdv33.xsd http://www.sat.gob.mx/Pagos http://www.sat.gob.mx/sitio_internet/cfd/Pagos/Pagos.xsd"
                          )
                 );
 } elseif ($addenda=="diconsa") {
@@ -143,18 +151,32 @@ satxmlsv33_cargaAtt($root, array("Version"=>"3.3",
                       "Folio"=>$arr['folio'],
                       "Fecha"=>satxmlsv33_xml_fech($arr['fecha']),
                       "Sello"=>"@",
-                      #"FormaPago"=>$arr['metodoDePago'],
-                      #"MetodoPago"=>$arr['formaDePago'],
+                      "FormaPago"=>$arr['metodoDePago'],
+                      "MetodoPago"=>$arr['formaDePago'],
                       "NoCertificado"=>$arr['noCertificado'],
                       "Certificado"=>"@",
                       "SubTotal"=>$arr['subTotal'],
                       "Total"=>$arr['total'],
-                      "Moneda"=>"MXN",
-                      "TipoCambio"=>"1",
+                      "Moneda"=>$arr['Moneda'],
+                      "TipoCambio"=>$arr['TipoCambio'],
                       "TipoDeComprobante"=>$arr['tipoDeComprobante'],
                       "LugarExpedicion"=>$arr['LugarExpedicion']
                    )
                 );
+}
+// }}}
+// {{{ Datos de documentos relacionados
+function satxmlsv33_relacionados($arr, $edidata, $dir,$nodo,$addenda) {
+    global $root, $xml;
+    // print_r($arr);
+    if ($arr["tipoRelacion"]!="") {
+        $cfdis = $xml->createElement("cfdi:CfdiRelacionados");
+        $cfdis = $root->appendChild($cfdis);
+        satxmlsv33_cargaAtt($cfdis, array("TipoRelacion"=>$arr['tipoRelacion']));
+        $cfdi = $xml->createElement("cfdi:CfdiRelacionado");
+        $cfdi = $cfdis->appendChild($cfdi);
+        satxmlsv33_cargaAtt($cfdi, array("UUID"=>$arr['uuidRelacion']));
+    }
 }
 // }}}
 // {{{ Datos del Emisor
@@ -203,52 +225,58 @@ for ($i=1; $i<=sizeof($arr['Conceptos']); $i++) {
               "ClaveUnidad"=>$arr['Conceptos'][$i]['ClaveUnidad'],
              )
         );
-    $impuestos = $xml->createElement("cfdi:Impuestos");
-    $impuestos = $concepto->appendChild($impuestos);
-    $traslados = $xml->createElement("cfdi:Traslados");
-    $traslados = $impuestos->appendChild($traslados);
-    $traslado = $xml->createElement("cfdi:Traslado");
-    $traslado = $traslados->appendChild($traslado);
-    satxmlsv33_cargaAtt($traslado, 
-        array("Base"=>$arr['Conceptos'][$i]['importe'],
-              "Importe"=>$arr['Conceptos'][$i]['impuesto'],
-              "Impuesto"=>"002",
-              "TasaOCuota"=>$arr['Conceptos'][$i]['TasaOCuota'],
-              "TipoFactor"=>"Tasa"
-             )
-        );
+    if ($addenda!="pago") {
+        $impuestos = $xml->createElement("cfdi:Impuestos");
+        $impuestos = $concepto->appendChild($impuestos);
+        $traslados = $xml->createElement("cfdi:Traslados");
+        $traslados = $impuestos->appendChild($traslados);
+        $traslado = $xml->createElement("cfdi:Traslado");
+        $traslado = $traslados->appendChild($traslado);
+        satxmlsv33_cargaAtt($traslado, 
+            array("Base"=>$arr['Conceptos'][$i]['importe'],
+                  "Importe"=>$arr['Conceptos'][$i]['impuesto'],
+                  "Impuesto"=>"002",
+                  "TasaOCuota"=>$arr['Conceptos'][$i]['TasaOCuota'],
+                  "TipoFactor"=>"Tasa"
+                 )
+             );
+    }
 }
 }
 // }}}
 // {{{ Impuesto (IVA)
 function satxmlsv33_impuestos($arr, $edidata, $dir,$nodo,$addenda) {
 global $root, $xml;
-$impuestos = $xml->createElement("cfdi:Impuestos");
-$impuestos = $root->appendChild($impuestos);
-$traslados = $xml->createElement("cfdi:Traslados");
-$traslados = $impuestos->appendChild($traslados);
-foreach ($arr['Impuestos'] as $TasaOCuota => $impu) {
-    $traslado = $xml->createElement("cfdi:Traslado");
-    $traslado = $traslados->appendChild($traslado);
-    // echo "Tasa=$TasaOCuota impu=$impu\n";
-    satxmlsv33_cargaAtt($traslado, 
-       array("Impuesto"=>"002",
-             "TipoFactor"=>"Tasa",
-             "TasaOCuota"=>$TasaOCuota,
-             "Importe"=>$impu
-            )
-        );
+if ($addenda!="pago") {
+    $impuestos = $xml->createElement("cfdi:Impuestos");
+    $impuestos = $root->appendChild($impuestos);
+    $traslados = $xml->createElement("cfdi:Traslados");
+    $traslados = $impuestos->appendChild($traslados);
+    foreach ($arr['Impuestos'] as $TasaOCuota => $impu) {
+        $traslado = $xml->createElement("cfdi:Traslado");
+        $traslado = $traslados->appendChild($traslado);
+        // echo "Tasa=$TasaOCuota impu=$impu\n";
+        satxmlsv33_cargaAtt($traslado, 
+           array("Impuesto"=>"002",
+                 "TipoFactor"=>"Tasa",
+                 "TasaOCuota"=>$TasaOCuota,
+                 "Importe"=>$impu
+                )
+            );
+    }
+    $impuestos->SetAttribute("TotalImpuestosTrasladados",$arr['Traslados']['importe']);
 }
-$impuestos->SetAttribute("TotalImpuestosTrasladados",$arr['Traslados']['importe']);
 }
 // }}}
-// {{{ Complementos fiscales
+// {{{ Complemento fiscales
 function satxmlsv33_complemento($arr, $edidata, $dir,$nodo,$addenda) {
 global $root, $xml;
     if ($addenda=="detallista") {
         satxmlsv33_complemento_detallista($arr, $edidata, $dir, $nodo, $addenda);
     } elseif ($addenda=="cce") {
         satxmlsv33_complemento_cce($arr, $edidata, $dir, $nodo, $addenda);
+    } elseif ($addenda=="pago") {
+        satxmlsv33_complemento_pago($arr, $edidata, $dir, $nodo, $addenda);
     }
 }
 // }}}
@@ -413,6 +441,37 @@ global $root, $xml;
     $cce11 = $Complemento->appendChild($cce11);
 }
 // }}}
+// {{{ Complemento Pago
+function satxmlsv33_complemento_pago($arr, $edidata, $dir,$nodo,$addenda) {
+global $root, $xml;
+    $Complemento = $xml->createElement("cfdi:Complemento");
+    $pagos = $xml->createElement("pago10:Pagos");
+    $pagos->SetAttribute("Version","1.0");
+    $pago = $xml->createElement("pago10:Pago");
+    satxmlsv33_cargaAtt($pago, 
+          array("FechaPago"=>$arr["Pago"]["FechaPago"],
+                "MonedaP"=>"MXN",
+                "Monto"=>$arr["Pago"]['Monto'],
+                "FormaDePagoP"=>$arr["Pago"]['FormaDePagoP']
+            ));
+    for ($i=1; $i<=sizeof($arr['Pago']['Docto']); $i++) {
+        $Docto = $xml->createElement("pago10:DoctoRelacionado");
+        satxmlsv33_cargaAtt($Docto, 
+          array("IdDocumento"=>$arr["Pago"]['Docto'][$i]["uuid"],
+                "ImpPagado"=>$arr["Pago"]['Docto'][$i]["ImpPagado"],
+                "MonedaDR"=>"MXN",
+                "MetodoDePagoDR"=>"PIP",
+                "NumParcialdiad"=>$arr["Pago"]['Docto'][$i]["NumParcialdiad"],
+                "ImpSaldoAnt"=>$arr["Pago"]['Docto'][$i]["ImpSaldoAnt"],
+                "ImpSaldoInsoluto"=>$arr["Pago"]['Docto'][$i]["ImpSaldoInsoluto"]
+        ));
+        $Docto = $pago->appendChild($Docto);
+    }
+    $pago = $pagos->appendChild($pago);
+    $pagos = $Complemento->appendChild($pagos);
+    $Complemento = $root->appendChild($Complemento);
+}
+// }}}
 // {{{ Addenda si se requiere
 function satxmlsv33_addenda($arr, $edidata, $dir,$nodo,$addenda) {
 global $root, $xml;
@@ -532,16 +591,64 @@ global $xml, $conn, $sello, $cadena_original;
 $xml->formatOutput = true;
 $todo = $xml->saveXML();
 $nufa = $arr['serie'].$arr['folio'];    // Junta el numero de factura   serie + folio
+$paso = $todo;
+file_put_contents("todo.xml",$todo);
 if ($dir != "/dev/null") {
     $xml->formatOutput = true;
     $file=$dir.$nufa.".xml";
     $xml->save($file);
 } 
+// echo "graba en pac\n";
+// Busca que no este el documento
+/*
+$encfd = $conn->GetOne("Select count(*) from clpacxml WHERE pacdocu = '$nufa'");
+if ($encfd == 0)  {
+    $qstr = $conn->qstr($cadena_original);
+    $encfd = $conn->GetOne("Select count(*) 
+         FROM clpacxml 
+        WHERE md5(paccade) = md5($qstr)");
+    if ($encfd == 0)  {
+        $campos = array("pacdocu"=>$nufa,
+                        "paccade"=>$cadena_original,
+                        "paclxml"=>$paso);
+        $conn->replace("clpacxml",$campos,"pacdocu",true);
+    } else {
+        //  factfdoc=factfdoc + interval '1 second';
+        //  notafdoc=notafdoc + interval '1 second';
+        $letra = substr($nufa,0,1);
+        switch ($letra) {
+        case 'F': 
+            $tabla = "clfactur";
+            $campo = "factfdoc";
+            $llave = "factnufa";
+            break;
+        case 'C':
+            $tabla = "clnocred";
+            $campo = "notafdoc";
+            $llave = "notanota";
+            break;
+        case 'A':
+            $tabla = "clcabono";
+            $campo = "abonfdoc";
+            $llave = "aboncabo";
+            break;
+        default:
+            die("Letra invalida");
+        }
+        $conn->debug=true;
+        $conn->execute("update $tabla set $campo=$campo + interval '1 second' where $llave='$nufa'");
+        sleep (1);
+        die("Dos CFDI con la misma cadena original ... sumarle un segundo a fdoc\n");
+    }
+}
+ */
+// }}}
 return($todo);
 }
 // {{{ Funcion que carga los atributos a la etiqueta XML
 function satxmlsv33_cargaAtt(&$nodo, $attr) {
 global $xml, $sello;
+$quitar = array('sello'=>1,'noCertificado'=>1,'certificado'=>1);
 foreach ($attr as $key => $val) {
     for ($i=0;$i<strlen($val); $i++) {
         $a = substr($val,$i,1);
@@ -641,4 +748,5 @@ function display_xml_error($error, $lineas) {
     echo "$return\n\n--------------------------------------------\n\n";
 }
 /// }}}}
+
 ?>
