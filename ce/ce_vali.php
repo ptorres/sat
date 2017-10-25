@@ -31,6 +31,9 @@
 // | 16/feb/2015 Validacion de sello, si incorrecto muestra cadena original    |
 // |                                                                           |
 // | 26/feb/2015 Valida que el certificado tenga el numero de serie reportado  |
+// |                                                                           |
+// | 25/nov/2016 Ordena catalogo de cuentas por si el XML esta desordenado     |
+// |              Gracias: Rene Calderon                                       |
 // +---------------------------------------------------------------------------+
 //
 ?>
@@ -41,7 +44,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Content-Type" content="text/html;charset=utf-8">
 <TITLE>Validacion de Contabilidad Electronica</TITLE>
-<link rel="STYLESHEET" href="../fortiz.css" media="screen" type="text/css">
+<link rel="STYLESHEET" href="/fortiz/fortiz.css" media="screen" type="text/css">
 <?php
 // Es solo para llevar mi estadistica en Google Analytics, ustedes quitenlo ...
 @include("urchin/corona.html");
@@ -119,10 +122,11 @@ if ($_FILES['bala_ant']['name']!=="") {
      * http://www.lacorona.com.mx/fortiz/sat/ce/...
      *
      * [dev@www ce]$ ls *xsd
-     * AuxiliarCtas_1_1.xsd          CatalogosParaEsqContE.xsd
-     * AuxiliarFolios_1_1.xsd        PolizasPeriodo_1_1.xsd
-     * BalanzaComprobacion_1_1.xsd   SelloDigitalContElec.xsd
-     * CatalogoCuentas_1_1.xsd
+     * AuxiliarCtas_1_1.xsd    BalanzaComprobacion_1_1.xsd  CatalogosParaEsqContE.xsd
+     * AuxiliarCtas_1_3.xsd    BalanzaComprobacion_1_3.xsd  PolizasPeriodo_1_1.xsd
+     * AuxiliarFolios_1_1.xsd  CatalogoCuentas_1_1.xsd      PolizasPeriodo_1_3.xsd
+     * AuxiliarFolios_1_3.xsd  CatalogoCuentas_1_3.xsd      SelloDigitalContElec.xsd
+     *
      *
 */
 echo "<h3>Valida esquema Balanza mes actual</h3>";
@@ -133,6 +137,7 @@ $xml_act = valida_xsd($bala_act,$xsd, $xslt, $nodo);
 if (!is_object($xml_act)) {
     die("<h3>Balanza actual con esquema incorrecto, no continua</h3>");
 }
+$xml_cata=null;
 if ($cata_act!="") {
     echo "<h3>Valida esquema catalogo de cuentas</h3>";
     $nodo = "Catalogo";
@@ -144,6 +149,7 @@ if ($cata_act!="") {
         unset($xml_cata);
     }
 }
+$xml_ant=null;
 if ($bala_ant!="") {
     echo "<h3>Valida esquema Balanza mes anterior</h3>";
     $xsd = "BalanzaComprobacion_1_1.xsd";
@@ -175,12 +181,22 @@ if (!$ok) {
    display_xml_errors(); 
    die();
 }
+$xp = new DOMXpath($xml);
+$version="";
+$nodelist = $xp->query("//@Version");
+foreach ($nodelist as $tmpnode)  {
+    $version = trim($tmpnode->nodeValue);
+}
+if ($version=="1.3") {
+    $xsd = str_replace("_1_1.","_1_3.",$xsd);
+    $xslt = str_replace("_1_1.","_1_3.",$xslt);
+}
 $ok = $xml->schemaValidate($xsd);
 if ($ok) {
-    echo "<h3>Esquema valido</h3>";
+    echo "<h3>Esquema version=$version valido</h3>";
     checa_sello($texto, $xslt, $nodo);
 } else {
-    echo "<h3>Estructura contra esquema incorrecta</h3>";
+    echo "<h3>Estructura version $version contra esquema incorrecta</h3>";
     display_xml_errors(); 
     $xml=false;
 }
@@ -283,6 +299,7 @@ function valida_bala_act($xml) {
                                    "Debe"=>$Debe,
                                    "Haber"=>$Haber,
                                    "SaldoFin"=>$SaldoFin,
+                                   "Text"=>"",
                                    "Error"=>$Error);
         }
     }
@@ -310,14 +327,26 @@ function valida_catalogo($data,$xml) {
             $SubCtaDe=$cuen->getAttribute('SubCtaDe');
             $NumCta=$cuen->getAttribute('NumCta');
             $Desc=$cuen->getAttribute('Desc');
+            $Desc = str_repeat("&nbsp;",($Nivel-1)*4).$Desc;
+            $cata[$NumCta] = array("Desc"=>$Desc,"Natur"=>$Natur,"Nivel"=>$Nivel,"SubCtaDe"=>$SubCtaDe,"Error"=>$Error,"CodAgrup"=>$CodAgrup);
+        } // Foreach Ctas
+        ksort($cata, SORT_STRING ); // Por si viene en desorden el XML
+        foreach ($cata as $NumCta => $c) {
+            if ($NumCta==0) continue;
+            $Nivel = $c["Nivel"];
+            $SubCtaDe = $c["SubCtaDe"];
+            $Error = $c["Error"];
+            $Desc = $c["Desc"];
+            $Natur = $c["Natur"];
             if ($Nivel==1 && $SubCtaDe) 
                 $Error .= "Nivel 1 de cuenta no puede ser subcuenta de otra cuenta. ";
             if ($Nivel>1) {
                 if (!$SubCtaDe) $Error .= "Nivel inferior de cuenta de subcuenta de otra cuenta. ";
-                if (!array_key_exists($SubCtaDe,$cata)) $Error .= "No existe la cuenta padre referenciada. ";
+                if (!array_key_exists($SubCtaDe,$cata)) {
+                    $Error .= "No existe la cuenta padre referenciada subctade=$SubCtaDe numcta=$NumCta. ";
+                }
             }
-            $Desc = str_repeat("&nbsp;",($Nivel-1)*4).$Desc;
-            $cata[$NumCta] = array("Desc"=>$Desc,"Natur"=>$Natur,"Nivel"=>$Nivel,"SubCtaDe"=>$SubCtaDe,"Error"=>$Error,"CodAgrup"=>$CodAgrup);
+            $cata[$NumCta]["Error"] = $Error;
             if ($_POST['cuales']=="catalogo" && !array_key_exists($NumCta,$data)) { // Agrega descripcion y Natur
                 $data[$NumCta]["Desc"] = $Desc;
                 $data[$NumCta]["Natur"] = $Natur;
@@ -327,8 +356,8 @@ function valida_catalogo($data,$xml) {
                 $data[$NumCta]["SaldoFin"]=0;
                 $data[$NumCta]["Error"]=$Error;
             }
-        }
-    }
+        } // foreach cata sorted
+    } // Foreach Catalogo
     // echo "<div align=left>";
     //  echo "<pre>";
     // print_r($_POST);
@@ -452,7 +481,7 @@ function valida_bala_ant($data,$xml) {
 function muestra_tabla($data) {
     // echo "<div align=left>"; echo "<pre>"; print_r($data); echo "</pre>"; echo "</div>";
     ksort($data, SORT_STRING );
-    echo "<h2>RFC:".$data[0]["RFC"]."A&ntilde;o ".$data[0]["Anio"].
+    echo "<h2>RFC:".$data[0]["RFC"]." A&ntilde;o ".$data[0]["Anio"].
         " mes:".$data[0]["Mes"]."</h2>";
     echo "<br>";
     echo "<h3 class=error>".$data[0]["Error"]."</h3>";
