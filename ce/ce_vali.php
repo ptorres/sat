@@ -53,7 +53,7 @@
 <BODY>
 <div align=center>
 <H1>Validacion de Contabilidad Electronica XML (Balanza/Catalogo)</H1>
-<h2>Version 1.1</h2>
+<h2>Version 1.1 y 1.3</h2>
 <form method='post' enctype='multipart/form-data'>
 <table border=1>
 <tr><th>Minimo este arcchivo<br>Balanza de Comprobacion mes actual 
