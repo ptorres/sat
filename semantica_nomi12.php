@@ -7,21 +7,26 @@
  * 23/dic/2016 Validacion de igualdad con abs() > 0.001 por error
  *             de precision. gracias acanas@validacfd
  *
+ * 24/mar/2017 Se permite RFC generico extranjero en nodo subcontratacion
+ *             RFCLabora                                     
+ *
  *****************************************************************************/
 error_reporting(E_ALL);
 class Nomi12 {
     var $xml_cfd;
     var $con;
-    var $codigo;
-    var $status;
-    var $cuenta=false; // Cantidad de registros en pac_l_rfc
+    var $codigo="";
+    var $status="";
+    var $mensaje="";
+    var $cuenta=true; // Cantidad de registros en pac_l_rfc
     // {{{ valida : semantica_nomi12
     public function valida($xml_cfd,$conn) {
         $ok = true;
+        $error = false;
         $this->xml_cfd = $xml_cfd;
         $this->conn = $conn;
-        $this->status = "NOM000; Inicia Validacion de semantica nomina";
-        $this->codigo = "0 ".$this->status;
+        $this->status = "";
+        $this->codigo = "";
         /// Verifica sea version 1.2
         $Comprobante = $this->xml_cfd->getElementsByTagName('Comprobante')->item(0);
         $version = $Comprobante->getAttribute("version");
@@ -30,25 +35,26 @@ class Nomi12 {
         $nomi = $this->xml_cfd->getElementsByTagName('Nomina')->item(0);
         $nombre = $nomi->parentNode->nodeName;
         if ($nombre != "cfdi:Complemento") {
-            $this->status = "NOM150; El nodo Nomina no se puede utilizar dentro del elemento ComplementoConcepto ($nombre).";
-            $this->codigo = "150 ".$this->status;
-            return false;
+            $this->status = ";NOM150 El nodo Nomina no se puede utilizar dentro del elemento ComplementoConcepto.";
+            $this->codigo .= "; NOM150";
+            $error=true;
         }
         $Version = $nomi->getAttribute("Version");
         if ($Version != "1.2") {
-            $this->status = "NOM000; Solo valida Version 1.2";
-            $this->codigo = "0 ".$this->status;
+            $this->status = "NOM000 Solo valida Version 1.2";
+            $this->codigo = 0;
             return true; // Correcta
         }
         // }}}
         // {{{ Atributos generales de Nomina, lee otros nodos
+        $NumDiasPagados = $nomi->getAttribute("NumDiasPagados");
         $TotalPercepciones = $nomi->getAttribute("TotalPercepciones");
         $TotalOtrosPagos = $nomi->getAttribute("TotalOtrosPagos");
         $TotalDeducciones = $nomi->getAttribute("TotalDeducciones");
         if ($TotalPercepciones=="" && $TotalOtrosPagos=="") {
-            $this->status = "NOM151; El nodo Nomina no tiene TotalPercepciones ni TotalOtrosPagos";
-            $this->codigo = "151 ".$this->status;
-            return false;
+            $this->status .= ";NOM151 El nodo Nomina no tiene TotalPercepciones y/o TotalOtrosPagos.";
+            $this->codigo .= "; NOM151";
+            $error=true;
         }
         $n_Emisores = $nomi->getElementsByTagName('Emisor');
         if ($n_Emisores->length == 0) {
@@ -70,7 +76,6 @@ class Nomi12 {
         $NumSeguridadSocial = $n_Receptor->getAttribute("NumSeguridadSocial");
         $FechaInicioRelLaboral = $n_Receptor->getAttribute("FechaInicioRelLaboral");
         $Antiguedad = $n_Receptor->getAttribute(utf8_encode("Antigüedad"));
-						// <xs:attribute name="AntigÃ¼edad" use="optional">
         $TipoRegimen = $n_Receptor->getAttribute("TipoRegimen");
         $RiesgoPuesto = $n_Receptor->getAttribute("RiesgoPuesto");
         $PeriodicidadPago = $n_Receptor->getAttribute("PeriodicidadPago");
@@ -87,13 +92,13 @@ class Nomi12 {
             $aux = "/^$regex$/A";
             $ok = preg_match($aux,$fecha);
             if (!$ok) {
-                $this->status = "NOM101; El atributo fecha no cumple con el patrón requerido";
+                $this->status = "NOM101 El atributo fecha no cumple con el patrón requerido.";
                 $this->codigo = "101 ".$this->status;
                 return false;
             }
             $metodoDePago = $Comprobante->getAttribute("metodoDePago");
             if ($metodoDePago != "NA") {
-                $this->status = "NOM102; El atributo metodoDePago debe de tener el valor 'NA'";
+                $this->status = 'NOM102 El atributo metodoDePago debe tener el valor "NA".';
                 $this->codigo = "102 ".$this->status;
                 return false;
             }
@@ -102,31 +107,33 @@ class Nomi12 {
             $aux = "/^$regex$/A";
             $ok = preg_match($aux,$noCertificado);
             if (!$ok) {
-                $this->status = "NOM103; El atributo noCertificado no cumple con el patrón requerido";
+                $this->status = "NOM103 El atributo noCertificado no cumple con el patrón requerido.";
                 $this->codigo = "103 ".$this->status;
                 return false;
             }
             $Moneda = $Comprobante->getAttribute("Moneda");
             if ($Moneda != "MXN") {
-                $this->status = "NOM104; El atributo Moneda, debe tener el valor MXN";
+                $this->status = "NOM104 El atributo Moneda debe tener el valor MXN.";
                 $this->codigo = "104 ".$this->status;
                 return false;
             }
             $TipoCambio = $Comprobante->getAttribute("TipoCambio");
-            if ($TipoCambio!="" && $TipoCambio!="1") {
-                $this->status = "NOM105; El atributo TipoCambio no tiene el valor = '1'.";
+            if ($TipoCambio!="" && $TipoCambio!=="1") {
+                $this->status = 'NOM105 El atributo TipoCambio no tiene el valor = "1".';
                 $this->codigo = "105 ".$this->status;
                 return false;
             }
             $subTotal = (double)$Comprobante->getAttribute("subTotal");
-            if ($subTotal!=(double)$TotalPercepciones+(double)$TotalOtrosPagos) {
-                $this->status = "NOM106; El valor del atributo subTotal no coincide con la suma de Nomina12:TotalPercepciones más Nomina12:TotalOtrosPagos.";
+            $aux = (double)$TotalPercepciones+(double)$TotalOtrosPagos;
+            if (abs($subTotal-$aux)>0.001) {
+                $this->status = "NOM106 El valor del atributo subTotal no coincide con la suma de Nomina12:TotalPercepciones más Nomina12:TotalOtrosPagos.";
                 $this->codigo = "106 ".$this->status;
                 return false;
             }
             $descuento = (double)$Comprobante->getAttribute("descuento");
-            if ($descuento!=(double)$TotalDeducciones) {
-                $this->status = "NOM107; El valor de descuento no es igual a Nomina12:TotalDeducciones";
+            $aux = (double)$TotalDeducciones;
+            if (abs($descuento-$aux)>0.001) {
+                $this->status = "NOM107 El valor de descuento no es igual a Nomina12:TotalDeducciones.";
                 $this->codigo = "107 ".$this->status;
                 return false;
             }
@@ -135,27 +142,27 @@ class Nomi12 {
             $aux = "/^$regex$/A";
             $ok = preg_match($aux,$total);
             if (!$ok) {
-                $this->status = "NOM108; El atributo total, no cumple con el patron requerido";
+                $this->status = "NOM108 El atributo total no cumple con el patrón requerido.";
                 $this->codigo = "108 ".$this->status;
                 return false;
             }
             $total = (double)$total;
             $a_total = (double)$TotalPercepciones + (double)$TotalOtrosPagos - (double)$TotalDeducciones;
             if (abs($total-$a_total)>0.001) {
-                $this->status = "NOM109; El valor del atributo total no coincide con la suma Nomina12:TotalPercepciones más Nomina12:TotalOtrosPagos.menos Nomina12:TotalDeducciones";
+                $this->status = "NOM109 El valor del atributo total no coincide con la suma Nomina12:TotalPercepciones más Nomina12:TotalOtrosPagos menos Nomina12:TotalDeducciones.";
                 $this->codigo = "109 ".$this->status;
                 return false;
             }
             $tipoDeComprobante = $Comprobante->getAttribute("tipoDeComprobante");
             if ($tipoDeComprobante!="egreso") {
-                $this->status = "NOM110; El atributo tipoDeComprobante no tiene el valor = 'egreso'.";
+                $this->status = 'NOM110 El atributo tipoDeComprobante no tiene el valor = "egreso".';
                 $this->codigo = "110 ".$this->status;
                 return false;
             }
             $LugarExpedicion = $Comprobante->getAttribute("LugarExpedicion");
             $ok = $this->Checa_Catalogo("c_CP", $LugarExpedicion);
             if (!$ok) {
-                $this->status = "NOM111; El valor del atributo LugarExpedicion no cumple con un valor del catalogo c_CodigoPostal";
+                $this->status = "NOM111 El valor del atributo LugarExpedicion no cumple con un valor del catálogo c_CodigoPostal.";
                 $this->codigo = "111 ".$this->status;
                 return false;
             }
@@ -165,51 +172,74 @@ class Nomi12 {
             $SerieFolioFiscalOrig = $Comprobante->getAttribute("SerieFolioFiscalOrig");
             $FechaFolioFiscalOrig = $Comprobante->getAttribute("FechaFolioFiscalOrig");
             $MontoFolioFiscalOrig = $Comprobante->getAttribute("MontoFolioFiscalOrig");
-            if ($motivoDescuento!="" || $NumCtaPago!="" ||
-                $condicionesDePago!="" || $SerieFolioFiscalOrig!="" ||
-                $FechaFolioFiscalOrig!="" || $MontoFolioFiscalOrig!="") {
-                $this->status = "NOM112; No deben de existir los atributos motivoDescuento, condicionesDePago, SerieFolioFiscalOrig, FechaFolioFiscalOrig ni MontoFolioFiscalOrig";
+            if ($motivoDescuento!="") {
+                $this->status = "NOM112 El atributo motivoDescuento no debe existir.";
+                $this->codigo = "112 ".$this->status;
+                return false;
+            }
+            if ($NumCtaPago!="") {
+                $this->status = "NOM112 El atributo NumCtaPago no debe existir.";
+                $this->codigo = "112 ".$this->status;
+                return false;
+            }
+            if ($condicionesDePago!="") {
+                $this->status = "NOM112 El atributo condicionesDePago no debe existir.";
+                $this->codigo = "112 ".$this->status;
+                return false;
+            }
+            if ($SerieFolioFiscalOrig!="") {
+                $this->status = "NOM112 El atributo SerieFolioFiscalOrig no debe existir.";
+                $this->codigo = "112 ".$this->status;
+                return false;
+            }
+            if ($FechaFolioFiscalOrig!="") {
+                $this->status = "NOM112 El atributo FechaFolioFiscalOrig no debe existir.";
+                $this->codigo = "112 ".$this->status;
+                return false;
+            }
+            if ($MontoFolioFiscalOrig!="") {
+                $this->status = "NOM112 El atributo MontoFolioFiscalOrig no debe existir.";
                 $this->codigo = "112 ".$this->status;
                 return false;
             }
             $Emisor = $Comprobante->getElementsByTagName('Emisor')->item(0);
             $rfcEmisor = $Emisor->getAttribute("rfc");
             if (strlen($rfcEmisor)==12 && $n_E_Curp!="") {
-                $this->status = "NOM113; El atributo Nomina12:Emisor:Curp. no aplica para persona moral.";
+                $this->status = "NOM113 El atributo Nomina12:Emisor:Curp. no aplica para persona moral.";
                 $this->codigo = "113 ".$this->status;
                 return false;
             }
             if (strlen($rfcEmisor)==13 && $n_E_Curp=="") {
-                $this->status = "NOM114; El atributo Nomina12:Emisor:Curp. Debe aplicar para persona fisica.";
+                $this->status = "NOM114 El atributo Nomina12:Emisor:Curp. Debe aplicar para persona física.";
                 $this->codigo = "114 ".$this->status;
                 return false;
             }
             $l_rfc_emisor= $this->lee_l_rfc($rfcEmisor);
             if (sizeof($l_rfc_emisor)==0) {
-                $this->status = "NOM225; Error No clasificado: No existe registro Emisor ($rfcEmisor) en l_rfc";
+                $this->status = "NOM225 Error No clasificado: No existe registro Emisor ($rfcEmisor) en l_rfc.";
                 $this->codigo = "225 ".$this->status;
                 return false;
             }
             if ($l_rfc_emisor["rfc_sub"]=="si" && $n_subs==0) {
-                $this->status = "NOM115; El nodo Subcontratacion se debe registrar";
+                $this->status = "NOM115 El nodo Subcontratacion se debe registrar.";
                 $this->codigo = "115 ".$this->status;
                 return false;
             }
             $lista = $Emisor->getElementsByTagName('DomicilioFiscal');
             if ($lista->length != 0) {
-                $this->status = "NOM116; El elemento DomicilioFiscal no debe existir";
+                $this->status = "NOM116 El elemento DomicilioFiscal no debe existir.";
                 $this->codigo = "116 ".$this->status;
                 return false;
             }
             $lista = $Emisor->getElementsByTagName('ExpedidoEn');
             if ($lista->length != 0) {
-                $this->status = "NOM116; El elemento ExpedidoEn no debe de existir";
+                $this->status = "NOM116 El elemento ExpedidoEn no debe de existir.";
                 $this->codigo = "116 ".$this->status;
                 return false;
             }
             $lista = $Emisor->getElementsByTagName('RegimenFiscal');
             if ($lista->length != 1) {
-                $this->status = "NOM117; Solo debe existir un solo nodo RegimenFiscal";
+                $this->status = "NOM117 Solo debe existir un solo nodo RegimenFiscal.";
                 $this->codigo = "117 ".$this->status;
                 return false;
             }
@@ -217,21 +247,21 @@ class Nomi12 {
             $Regimen=$RegimenFiscal->getAttribute("Regimen");
             $ok = $this->Checa_Catalogo("c_RegimenFiscal", $Regimen);
             if (!$ok) {
-                $this->status = "NOM118; El atributo Regimen no cumple con un valor del catalogo c_RegimenFiscal.";
+                $this->status = "NOM118 El atributo Regimen no cumple con un valor del catalogo c_RegimenFiscal.";
                 $this->codigo = "118 ".$this->status;
                 return false;
             }
             if (strlen($rfcEmisor)==13) { // Fisica
                 $ok = $this->Checa_Catalogo("c_RegimenFisica", $Regimen);
                 if (!$ok) {
-                    $this->status = "NOM120; El atributo Regimen no cumple con un valor de acuerdo al tipo de persona fisica.";
+                    $this->status = "NOM120 El atributo Regimen no cumple con un valor de acuerdo al tipo de persona física.";
                     $this->codigo = "120 ".$this->status;
                     return false;
                 }
             } else { // Moral
                 $ok = $this->Checa_Catalogo("c_RegimenMoral", $Regimen);
                 if (!$ok) {
-                    $this->status = "NOM119; El atributo Regimen no cumple con un valor de acuerdo al tipo de persona moral.";
+                    $this->status = "NOM119 El atributo Regimen no cumple con un valor de acuerdo al tipo de persona moral.";
                     $this->codigo = "119 ".$this->status;
                     return false;
                 }
@@ -239,68 +269,68 @@ class Nomi12 {
             $Receptor = $Comprobante->getElementsByTagName('Receptor')->item(0);
             $rfcReceptor = $Receptor->getAttribute("rfc");
             if (strlen($rfcReceptor)!=13) {
-                $this->status = "NOM121; El atributo cfdi:Comprobante.Receptor.rfc debe ser persona física (13 caracteres).";
+                $this->status = "NOM121 El atributo cfdi:Comprobante.Receptor.rfc debe ser persona física (13 caracteres).";
                 $this->codigo = "121 ".$this->status;
                 return false;
             }
             $row= $this->lee_l_rfc($rfcReceptor);
             if (sizeof($row)==0) {
-                $this->status = "NOM122; El atributo cfdi:Comprobante.Receptor.rfc no es válido según la lista de RFC inscritos no cancelados en el SAT (l_RFC).";
+                $this->status = "NOM122 El atributo cfdi:Comprobante.Receptor.rfc no es válido según la lista de RFC inscritos no cancelados en el SAT (l_RFC).";
                 $this->codigo = "122 ".$this->status;
                 return false;
             }
             $lista = $Receptor->getElementsByTagName('Domicilio');
             if ($lista->length != 0) {
-                $this->status = "NOM123; El nodo Domicilio no debe existir";
+                $this->status = "NOM123 El nodo Domicilio no debe existir.";
                 $this->codigo = "123 ".$this->status;
                 return false;
             }
             $Conceptos = $Comprobante->getElementsByTagName('Concepto');
             if ($Conceptos->length != 1) {
-                $this->status = "NOM124; El nodo concepto solo debe existir uno";
+                $this->status = "NOM124 El nodo concepto solo debe existir uno, sin elementos hijo.";
                 $this->codigo = "124 ".$this->status;
                 return false;
             }
             $Concepto = $Conceptos->item(0);
             if ($Concepto->hasChildNodes()) {
-                $this->status = "NOM124; El nodo concepto solo debe existir uno, sin elementos hijo";
+                $this->status = "NOM124 El nodo concepto solo debe existir uno, sin elementos hijo.";
                 $this->codigo = "124 ".$this->status;
                 return false;
             }
             $noIdentificacion = $Concepto->getAttribute("noIdentificacion");
             if ($noIdentificacion!="") {
-                $this->status = "NOM125; El atributo noIdentificacion no debe existir";
+                $this->status = "NOM125 El atributo noIdentificacion no debe existir.";
                 $this->codigo = "125 ".$this->status;
                 return false;
             }
             $cantidad = $Concepto->getAttribute("cantidad");
-            if ($cantidad!="1") {
-                $this->status = "NOM126; El atributo cfdi:Comprobante:Conceptos.Concepto.cantidad no tiene el valor = '1'";
+            if ($cantidad!=="1") {
+                $this->status = 'NOM126 El atributo cfdi:Comprobante.Conceptos.Concepto.cantidad no tiene el valor = "1".';
                 $this->codigo = "126 ".$this->status;
                 return false;
             }
             $unidad = $Concepto->getAttribute("unidad");
             if ($unidad!="ACT") {
-                $this->status = "NOM127; El atributo cfdi:Comprobante:Conceptos.Concepto.unidad no tiene el valor = 'ACT'";
+                $this->status = 'NOM127 El atributo cfdi:Comprobante.Conceptos.Concepto.unidad no tiene el valor = "ACT".';
                 $this->codigo = "127 ".$this->status;
                 return false;
             }
             $descripcion = $Concepto->getAttribute("descripcion");
             if ($descripcion!=utf8_encode("Pago de nómina")) {
-                $this->status = "NOM128; El atributo cfdi:Comprobante:Conceptos.Concepto.descripcion no tiene el valor 'Pago de nómina'";
+                $this->status = 'NOM128 El atributo cfdi:Comprobante:Conceptos.Concepto.descripcion no tiene el valor "Pago de nómina".';
                 $this->codigo = "128 ".$this->status;
                 return false;
             }
             $a_total = (double)$TotalPercepciones + (double)$TotalOtrosPagos;
             $valorUnitario = (double)$Concepto->getAttribute("valorUnitario");
             if (abs($a_total-$valorUnitario)>0.001) {
-                $this->status = "NOM129; El valor del atributo.cfdi:Comprobante.Conceptos.Concepto.valorUnitario ($valorUnitario) no coincide con la suma TotalPercepciones más TotalOtrosPagos ($a_total).";
+                $this->status = "NOM129 El valor del atributo.cfdi:Comprobante.Conceptos.Concepto.valorUnitario no coincide con la suma TotalPercepciones más TotalOtrosPagos.";
                 $this->codigo = "129 ".$this->status;
                 return false;
             }
             $importe = (double)$Concepto->getAttribute("importe");
             if (abs($a_total-$importe)>0.001) {
-                $this->status = "NOM130; El valor del atributo.cfdi:Comprobante.Conceptos.Concepto.importe ($importe) no coincide con la suma TotalPercepciones más TotalOtrosPagos ($a_total).";
+                $this->status = "NOM130 El valor del atributo.cfdi:Comprobante.Conceptos.Concepto.Importe no coincide con la suma TotalPercepciones más TotalOtrosPagos.";
                 $this->codigo = "130 ".$this->status;
                 return false;
             }
@@ -308,12 +338,12 @@ class Nomi12 {
             $nodo = $Impuestos->childNodes->item(1);
             if ($nodo != NULL) {
                 $name=$nodo->nodeName;
-                $this->status = "NOM131; El nodo cfdi:Comprobante.Impuestos no cumple la estructura, no debe de tener nodos hijos ($name)";
+                $this->status = "NOM131 El nodo cfdi:Comprobante.Impuestos no cumple la estructura.";
                 $this->codigo = "131 ".$this->status;
                 return false;
             }
             if ($Impuestos->hasAttributes())  {
-                $this->status = "NOM131; El nodo cfdi:Comprobante.Impuestos no cumple la estructura,  no debe de tener atributos";
+                $this->status = "NOM131 El nodo cfdi:Comprobante.Impuestos no cumple la estructura.";
                 $this->codigo = "131 ".$this->status;
                 return false;
             } // }}}
@@ -323,163 +353,166 @@ class Nomi12 {
             $fecha = $Comprobante->getAttribute("Fecha");
             $Moneda = $Comprobante->getAttribute("Moneda");
             if ($Moneda != "MXN") {
-                $this->status = "NOM132; El atributo Moneda, debe tener el valor MXN";
-                $this->codigo = "132 ".$this->status;
-                return false;
+                $this->status .= '; NOM132 El atributo Moneda, debe tener el valor "MXN".';
+                $this->codigo .= "; NOM132";
+                $error=true;
             }
             $FormaPago = $Comprobante->getAttribute("FormaPago");
             if ($FormaPago != "99") {
-                $this->status = "NOM133; El atributo FormaPago no tiene el valor =  99.";
-                $this->codigo = "133 ".$this->status;
-                return false;
+                $this->status .= "; NOM133 El atributo FormaPago no tiene el valor =  99.";
+                $this->codigo .= "; NOM133";
+                $error=true;
             }
             $TipoDeComprobante = $Comprobante->getAttribute("TipoDeComprobante");
             if ($TipoDeComprobante!="N") {
-                $this->status = "NOM134; El atributo TipoDeComprobante no tiene el valor =  N.";
-                $this->codigo = "134 ".$this->status;
-                return false;
+                $this->status .= "; NOM134 El atributo TipoDeComprobante no tiene el valor =  N.";
+                $this->codigo .= "; NOM134";
+                $error=true;
             }
             $Emisor = $Comprobante->getElementsByTagName('Emisor')->item(0);
             $rfcEmisor = $Emisor->getAttribute("Rfc");
             if (strlen($rfcEmisor)==12 && $n_E_Curp!="") {
-                $this->status = "NOM135; El atributo Nomina12:Emisor:Curp. no aplica para persona moral.";
-                $this->codigo = "135 ".$this->status;
-                return false;
+                $this->status .= "; NOM135 El atributo Nomina12:Emisor:Curp. no aplica para persona moral.";
+                $this->codigo .= "; NOM135";
+                $error=true;
             }
             if (strlen($rfcEmisor)==13 && $n_E_Curp=="") {
-                $this->status = "NOM136; El atributo Nomina12:Emisor:Curp. Debe aplicar para persona fisica.";
-                $this->codigo = "136 ".$this->status;
-                return false;
+                $this->status .= "; NOM136 El atributo Nomina12:Emisor:Curp. Debe aplicar para persona fisica.";
+                $this->codigo .= "; NOM136";
+                $error=true;
             }
             $l_rfc_emisor= $this->lee_l_rfc($rfcEmisor);
             if (sizeof($l_rfc_emisor)==0) {
-                $this->status = "NOM225; Error No clasificado: No existe registro Emisor ($rfcEmisor) en l_rfc";
-                $this->codigo = "225 ".$this->status;
-                return false;
+                $this->status .= "; NOM225 Error No clasificado: No existe registro Emisor ($rfcEmisor) en l_rfc.";
+                $this->codigo .= "; NOM225";
+                $error=true;
             }
             $Receptor = $Comprobante->getElementsByTagName('Receptor')->item(0);
             $rfcReceptor = $Receptor->getAttribute("Rfc");
             if (strlen($rfcReceptor)!=13) {
-                $this->status = "NOM137; El atributo Comprobante.Receptor.rfc ($rfcReceptor), debe ser de longitud 13.";
-                $this->codigo = "137 ".$this->status;
-                return false;
+                $this->status .= "; NOM137 El atributo Comprobante.Receptor.rfc, debe ser de longitud 13.";
+                $this->codigo .= "; NOM137";
+                $error=true;
             }
             $row= $this->lee_l_rfc($rfcReceptor);
             if (sizeof($row)==0) {
-                $this->status = "NOM138; El atributo cfdi:Comprobante.Receptor.rfc no es válido según la lista de RFC inscritos no cancelados en el SAT (l_RFC).";
-                $this->codigo = "138 ".$this->status;
-                return false;
+                $this->status .= "; NOM138 El atributo cfdi:Comprobante.Receptor.rfc no es válido según la lista de RFC inscritos no cancelados en el SAT (l_RFC).";
+                $this->codigo .= "; NOM138";
+                $error=true;
             }
             $Conceptos = $Comprobante->getElementsByTagName('Concepto');
             if ($Conceptos->length != 1) {
-                $this->status = "NOM139; El nodo concepto solo debe existir uno";
-                $this->codigo = "139 ".$this->status;
-                return false;
+                $this->status .= "; NOM139 El nodo Comprobante.Conceptos.Concepto, Solo puede registrarse un nodo concepto, sin elementos hijo.";
+                $this->codigo .= "; NOM139";
+                $error=true;
             }
             $Concepto = $Conceptos->item(0);
             if ($Concepto->hasChildNodes()) {
-                $this->status = "NOM139; El nodo concepto solo debe existir uno, sin elementos hijo";
-                $this->codigo = "139 ".$this->status;
-                return false;
+                $this->status .= "; NOM139 El nodo Comprobante.Conceptos.Concepto, Solo puede registrarse un nodo concepto, sin elementos hijo.";
+                $this->codigo .= "; NOM139";
+                $error=true;
             }
             $ClaveProdServ = $Concepto->getAttribute("ClaveProdServ");
             if ($ClaveProdServ!="84111505") {
-                $this->status = "NOM140; El atributo Comprobante.Conceptos.Concepto,CkaveProdServ no tiene el valor '84111505'.";
-                $this->codigo = "140 ".$this->status;
-                return false;
+                $this->status .= '; NOM140 El atributo Comprobante.Conceptos.Concepto,CkaveProdServ no tiene el valor "84111505".';
+                $this->codigo .= "; NOM140";
+                $error=true;
             }
             $NoIdentificacion = $Concepto->getAttribute("NoIdentificacion");
             if ($NoIdentificacion!="") {
-                $this->status = "NOM141; El atributo NoIdentificacion no debe existir";
-                $this->codigo = "141 ".$this->status;
-                return false;
+                $this->status .= "; NOM141 El atributo NoIdentificacion no debe existir.";
+                $this->codigo .= "; NOM141";
+                $error=true;
             }
             $Cantidad = $Concepto->getAttribute("Cantidad");
             if ($Cantidad!="1") {
-                $this->status = "NOM142; El atributo cfdi:Comprobante:Conceptos.Concepto.Cantidad no tiene el valor = '1'";
-                $this->codigo = "142 ".$this->status;
-                return false;
+                $this->status .= '; NOM142 El atributo cfdi:Comprobante:Conceptos.Concepto.Cantidad no tiene el valor = "1".';
+                $this->codigo .= "; NOM142";
+                $error=true;
             }
             $ClaveUnidad = $Concepto->getAttribute("ClaveUnidad");
             if ($ClaveUnidad!="ACT") {
-                $this->status = "NOM143; El atributo cfdi:Comprobante:Conceptos.Concepto.ClaveUnidad no tiene el valor = 'ACT'";
-                $this->codigo = "143 ".$this->status;
-                return false;
+                $this->status .= '; NOM143 El atributo cfdi:Comprobante:Conceptos.Concepto.ClaveUnidad no tiene el valor = "ACT".';
+                $this->codigo .= "; NOM143 ";
+                $error=true;
             }
             $Unidad = $Concepto->getAttribute("Unidad");
             if ($Unidad!=null) {
-                $this->status = "NOM144; El atributo cfdi:Comprobante:Conceptos.Concepto.Unidad no debe existir.";
-                $this->codigo = "144 ".$this->status;
-                return false;
+                $this->status .= "; NOM144 El atributo cfdi:Comprobante:Conceptos.Concepto.Unidad no debe existir.";
+                $this->codigo .= "; NOM144";
+                $error=true;
             }
             $Descripcion = $Concepto->getAttribute("Descripcion");
             if ($Descripcion!=utf8_encode("Pago de nómina")) {
-                $this->status = "NOM145; El atributo cfdi:Comprobante:Conceptos.Concepto.Descripcion no tiene el valor 'Pago de nómina'";
-                $this->codigo = "145 ".$this->status;
-                return false;
+                $this->status .= "; NOM145 El atributo cfdi:Comprobante:Conceptos.Concepto.Descripcion no tiene el valor 'Pago de nómina'.";
+                $this->codigo .= "; NOM145";
+                $error=true;
             }
             $a_total = (double)$TotalPercepciones + (double)$TotalOtrosPagos;
             $ValorUnitario = (double)$Concepto->getAttribute("ValorUnitario");
             if (abs($a_total-$ValorUnitario)>0.001) {
-                $this->status = "NOM146; El valor del atributo.cfdi:Comprobante.Conceptos.Concepto.ValorUnitario ($ValorUnitario) no coincide con la suma ($a_total) de TotalPercepciones ($TotalPercepciones) más TotalOtrosPagos ($TotalOtrosPagos).";
-                $this->codigo = "146 ".$this->status;
-                return false;
+                $this->status .= "; NOM146 El valor del atributo Comprobante.Conceptos.Concepto,ValorUnitario no coincide con la suma TotalPercepciones más TotalOtrosPagos.";
+                $this->codigo .= "; NOM146";
+                $error=true;
             }
             $Importe = (double)$Concepto->getAttribute("Importe");
             if (abs($a_total-$Importe)>0.001) {
-                $this->status = "NOM147; El valor del atributo.cfdi:Comprobante.Conceptos.Concepto.Importe ($Importe) no coincide con la suma ($a_total) TotalPercepciones más TotalOtrosPagos.";
-                $this->codigo = "147 ".$this->status;
-                return false;
+                $this->status .= "; NOM147 El valor del atributo Comprobante.Conceptos.Concepto,importe no coincide con la suma TotalPercepciones más TotalOtrosPagos.";
+                $this->codigo .= "; NOM147";
+                $error=true;
             }
             $c_Descuento = (double)$Concepto->getAttribute("Descuento");
             if (abs($c_Descuento-$TotalDeducciones)>0.001) {
-                $this->status = "NOM148; El valor del atributo Comprobante.Conceptos.Concepto,Descuento ($c_Descuento) no es igual a el valor del campo Nomina12:TotalDeducciones ($TotalDeducciones(.";
-                $this->codigo = "148 ".$this->status;
-                return false;
+                $this->status .= "; NOM148 El valor del atributo Comprobante.Conceptos.Concepto,Descuento no es igual a el valor del campo Nomina12:TotalDeducciones.";
+                $this->codigo .= "; NOM148";
+                $error=true;
             }
-            $Impuestos = $Comprobante->getElementsByTagName('Impuestos')->item(0);
-            $nodo = $Impuestos->childNodes->item(1);
-            if ($nodo != NULL) {
-                $name=$nodo->nodeName;
-                $this->status = "NOM149; El nodo cfdi:Comprobante.Impuestos no cumple la estructura, no debe de tener nodos hijos ($name)";
-                $this->codigo = "149 ".$this->status;
-                return false;
-            }
-            if ($Impuestos->hasAttributes())  {
-                $this->status = "NOM149; El nodo cfdi:Comprobante.Impuestos no cumple la estructura,  no debe de tener atributos";
-                $this->codigo = "149 ".$this->status;
-                return false;
+            $Impuestos = $Comprobante->getElementsByTagName('Impuestos');
+            if ($Impuestos->length > 0) {
+                $this->status .= "; NOM149 El nodo Comprobante.Impuestos, no debe existir.";
+                $this->codigo .= "; NOM149";
+                $error=true;
             } // }}}
         } // fin de 3.3
         // {{{ Validacion de Complemento de NOmina
         $TipoNomina = $nomi->getAttribute("TipoNomina");
         $ok = $this->Checa_Catalogo("c_TipoNomina",$TipoNomina);
         if (!$ok) {
-            $this->status = "NOM152; El valor del atributo Nomina.TipoNomina ($TipoNomina)  no está en catálogo c_TipoNomina";
-            $this->codigo = "152  ".$this->status;
-            return false;
+            $this->status .= ": NOM152 El valor del atributo Nomina.TipoNomina no cumple con un valor del catálogo c_TipoNomina.";
+            $this->codigo .= "; NOM152";
+            $error=true;
         }
         $a_pago = (int)$PeriodicidadPago;
         if ($TipoNomina=="E") {
            if ($a_pago != 99) {
-                $this->status = "NOM152; El valor del atributo tipo de periodicidad no es 99";
-                $this->codigo = "154 ".$this->status;
-                return false;
+                $this->status .= "; NOM154 El valor del atributo tipo de periodicidad no es 99.";
+                $this->codigo .= "; NOM154";
+                $error=true;
            }
         } 
         if ($TipoNomina=="O") {
            if ($a_pago < 1 || $a_pago > 9) {
-               $this->status = "NOM153; El valor del atributo tipo de periodicidad no se encuentra entre 01 al 09 ($a_pago) ($TipoNomina)";
-               $this->codigo = "153 ".$this->status;
-               return false;
+               $this->status .= "; NOM153 El valor del atributo tipo de periodicidad no se encuentra entre 01 al 09.";
+               $this->codigo .= "; NOM153";
+               $error=true;
            }
         }
         $FechaInicialPago = new Datetime($nomi->getAttribute("FechaInicialPago"));
         $FechaFinalPago = new Datetime($nomi->getAttribute("FechaFinalPago"));
         if ($FechaInicialPago > $FechaFinalPago) {
-            $this->status = "NOM155; El valor del atributo FechaInicialPago no es menor o igual al valor del atributo FechaFinalPago.";
-            $this->codigo = "155 ".$this->status;
-            return false;
+            $this->status .= "; NOM155 El valor del atributo FechaInicialPago no es menor o igual al valor del atributo FechaFinalPago.";
+            $this->codigo .= "; NOM155";
+            $error=true;
+        }
+        if ((double)$NumDiasPagados<0.001) {
+            $this->status .= "; NOM227 El valor del atributo Nomina.NumDiasPagados no cumple con el valor minimo permitido.";
+            $this->codigo .= "; NOM227";
+            $error=true;
+        }
+        if ((double)$NumDiasPagados>36160.000) {
+            $this->status .= "; NOM227 El valor del atributo Nomina.NumDiasPagados no cumple con el valor maximo permitido.";
+            $this->codigo .= "; NOM227";
+            $error=true;
         }
         $percs = $nomi->getElementsByTagName('Percepciones');
         if ($percs->length > 0) { // SI hay percepciones
@@ -491,15 +524,15 @@ class Nomi12 {
                        (double)$TotalSeparacionIndemnizacion + 
                        (double)$TotalJubilacionPensionRetiro;
             if (abs($TotalPercepciones-$a_total)>0.001) {
-                $this->status = "NOM157; El valor del atributo Nomina.TotalPercepciones ($TotalPercepciones) no coincide con la suma ($a_total) TotalSueldos más TotalSeparacionIndemnizacion más TotalJubilacionPensionRetiro del nodo Percepciones.";
-                $this->codigo = "157 ".$this->status;
-                return false;
+                $this->status .= "; NOM157 El valor del atributo Nomina.TotalPercepciones no coincide con la suma TotalSueldos más TotalSeparacionIndemnizacion más TotalJubilacionPensionRetiro del  nodo Percepciones.";
+                $this->codigo .= "; NOM157";
+                $error=true;
             }
         } else { // No hay percepciones
             if ($TotalPercepciones != null) {
-                $this->status = "NOM156; El atributo Nomina.TotalPercepciones, no debe existir.";
-                $this->codigo = "156 ".$this->status;
-                return false;
+                $this->status .= "; NOM156 El atributo Nomina.TotalPercepciones, no debe existir.";
+                $this->codigo .= "; NOM156";
+                $error=true;
             }
         }
         $deducs = $nomi->getElementsByTagName('Deducciones');
@@ -509,15 +542,15 @@ class Nomi12 {
             $TotalImpuestosRetenidos = $Deducciones->getAttribute("TotalImpuestosRetenidos");
             $a_total = (double)$TotalOtrasDeducciones + (double)$TotalImpuestosRetenidos;
             if (abs($TotalDeducciones-$a_total)>0.001) {
-                $this->status = "NOM159; El valor del atributo Nomina.TotalDeducciones ($TotalDeducciones) no coincide con la suma ($a_total) de los atributos TotalOtrasDeducciones ($TotalOtrasDeducciones) más TotalImpuestosRetenidos ($TotalImpuestosRetenidos) del elemento Deducciones.";
-                $this->codigo = "159 ".$this->status;
-                return false;
+                $this->status .= "; NOM159 El valor del atributo Nomina.TotalDeducciones no coincide con la suma de los atributos TotalOtrasDeducciones más TotalImpuestosRetenidos del elemento Deducciones.";
+                $this->codigo .= "; NOM159";
+                $error=true;
             }
         } else { // No Hay Deducciones
             if ($TotalDeducciones != null) {
-                $this->status = "NOM158; El atributo Nomina.TotalDeducciones, no debe existir";
-                $this->codigo = "158 ".$this->status;
-                return false;
+                $this->status .= "; NOM158 El atributo Nomina.TotalDeducciones, no debe existir.";
+                $this->codigo .= "; NOM158";
+                $error=true;
             }
         }
         $otros = $nomi->getElementsByTagName('OtrosPagos');
@@ -531,67 +564,67 @@ class Nomi12 {
                 $suma += (double)$OtroPago->getAttribute("Importe");
             }
             if (abs((double)$TotalOtrosPagos-$suma)>0.001) {
-                $this->status = "NOM160; El valor del atributo Nomina.TotalOtrosPagos ($TotalOtrosPagos) no esta registrado o no coincide con la suma de los atributos Importe de los nodos nomina12:OtrosPagos:OtroPago ($suma).";
-                $this->codigo = "160 ".$this->status;
-                return false;
+                $this->status .= "; NOM160 El valor del atributo Nomina.TotalOtrosPagos no está registrado o  no coincide con la suma de los atributos Importe de los nodos nomina12:OtrosPagos:OtroPago.";
+                $this->codigo .= "; NOM160";
+                $error=true;
             }
         } else { // NO hay otros pagos
             if ($TotalOtrosPagos != null) {
-                $this->status = "NOM160; Nomina:TotalOtrosPagos no debe de existir si no hay OtrosPagos";
-                $this->codigo = "160 ".$this->status;
-                return false;
+                $this->status .= "; NOM160 El valor del atributo Nomina.TotalOtrosPagos no está registrado o  no coincide con la suma de los atributos Importe de los nodos nomina12:OtrosPagos:OtroPago.";
+                $this->codigo .= "; NOM160";
+                $error=true;
             }
         } // }}}
         // {{{ Validacion de Emisor
         if ($n_E_RfcPatronOrigen != "") {
             $row= $this->lee_l_rfc($n_E_RfcPatronOrigen);
             if (sizeof($row)==0) {
-                $this->status = "NOM161; El atributo Nomina.Emisor.RfcPatronOrigen no está inscrito en el SAT (l_RFC)";
-                $this->codigo = "161 ".$this->status;
-                return false;
+                $this->status .= "; NOM161 El atributo Nomina.Emisor.RfcPatronOrigen no está inscrito en el SAT (l_RFC).";
+                $this->codigo .= "; NOM161";
+                $error=true;
             }
         }
         if ($n_Emisores->length > 0) { // SI hay Emisor
             $sncf = $n_Emisor->getElementsByTagName('EntidadSNCF');
             if ($sncf->length > 0) { // SI hay Entidad SNCF
                 if ($l_rfc_emisor["rfc_sncf"]!="si") {
-                    $this->status = "NOM166; El nodo Nomina.Emisor.EntidadSNCF no debe existir.";
-                    $this->codigo = "166 ".$this->status;
-                    return false;
+                    $this->status .= "; NOM166 El nodo Nomina.Emisor.EntidadSNCF no debe existir.";
+                    $this->codigo .= "; NOM166";
+                    $error=true;
                 }
                 $EntidadSNCF = $sncf->item(0);
                 $OrigenRecurso = $EntidadSNCF->getAttribute("OrigenRecurso");
                 $ok = $this->Checa_Catalogo("c_OrigenRecurso",$OrigenRecurso);
                 if (!$ok) {
-                    $this->status = "NOM167; El valor del atributo Nomina.Emisor.EntidadSNCF.OrigenRecurso no cumple con un valor del catálogo c_OrigenRecurso";
-                    $this->codigo = "167 ".$this->status;
-                    return false;
+                    $this->status .= "; NOM167 El valor del atributo Nomina.Emisor.EntidadSNCF.OrigenRecurso no cumple con un valor del catálogo c_OrigenRecurso.";
+                    $this->codigo .= "; NOM167";
+                    $error=true;
                 }
                 $MontoRecursoPropio = $EntidadSNCF->getAttribute("MontoRecursoPropio");
                 if ($OrigenRecurso=="IM") { // Ingresos Mixtos
                     if ($MontoRecursoPropio == null) {
-                        $this->status = "NOM168; El atributo Nomina.Emisor.EntidadSNCF.MontoRecursoPropio debe existir";
-                        $this->codigo = "168 ".$this->status;
-                        return false;
+                        $this->status .= "; NOM168 El atributo Nomina.Emisor.EntidadSNCF.MontoRecursoPropio debe existir.";
+                        $this->codigo .= "; NOM168";
+                        $error=true;
                     }
                     $a_total = (double)$TotalPercepciones + (double)$TotalOtrosPagos;
                     if ((double)$MontoRecursoPropio > $a_total) {
-                        $this->status = "NOM170; El valor del atributo Nomina.Emisor.EntidadSNCF.MontoRecursoPropio no es menor a la suma de los valores de los atributos TotalPercepciones y TotalOtrosPagos. ";
-                        $this->codigo = "170 ".$this->status;
-                        return false;
+                        $this->status .= "; NOM170 El valor del atributo Nomina.Emisor.EntidadSNCF.MontoRecursoPropio no es menor a la suma de los valores de los atributos TotalPercepciones y TotalOtrosPagos. ";
+                        $this->codigo .= "; NOM170";
+                        $error=true;
                     }
                 } else { // NO es IM
                     if ($MontoRecursoPropio != null) {
-                        $this->status = "NOM169; El atributo Nomina.Emisor.EntidadSNCF.MontoRecursoPropio no debe existir.";
-                        $this->codigo = "169 ".$this->status;
-                        return false;
+                        $this->status .= "; NOM169 El atributo Nomina.Emisor.EntidadSNCF.MontoRecursoPropio no debe existir.";
+                        $this->codigo .= "; NOM169";
+                        $error=true;
                     }
                 }// IM
             } else { // no hay nodo hijo sncf
                 if ($l_rfc_emisor["rfc_sncf"]=="si") {
-                    $this->status = "NOM165; El nodo Nomina.Emisor.EntidadSNCF no existe y se espera porque tiene la marca de estar adherido al SNCF.";
-                    $this->codigo = "165 ".$this->status;
-                    return false;
+                    $this->status .= "; NOM165 El nodo Nomina.Emisor.EntidadSNCF debe existir.";
+                    $this->codigo .= "; NOM165";
+                    $error=true;
                 }
             } // sncf
         } //  hay emisor
@@ -603,47 +636,54 @@ class Nomi12 {
             if ($NumSeguridadSocial == null || 
                 $FechaInicioRelLaboral == null || $Antiguedad == null ||
                 $RiesgoPuesto == null || $SalarioDiarioIntegrado == null) {
-                $this->status = "NOM164; Uno de los atributos nomina12:Receptor:NumSeguridadSocial ($NumSeguridadSocial), nomina12:Receptor:FechaInicioRelLaboral ($FechaInicioRelLaboral), nomina12:Receptor:Antigüedad ($Antiguedad),  nomina12:Receptor:RiesgoPuesto ($RiesgoPuesto) y nomina12:Receptor:SalarioDiarioIntegrado ($SalarioDiarioIntegrado) no existe, y debe de existir.";
-                $this->codigo = "164 ".$this->status;
-                return false;
+                $l = "";
+                if ($NumSeguridadSocial==null) $l .= "NumSeguridadSocial ";
+                if ($FechaInicioRelLaboral==null) $l .= "FechaInicioRelLaboral ";
+                if ($Antiguedad==null) $l .= "Antigüedad ";
+                if ($RiesgoPuesto==null) $l .= "RiesgoPuesto ";
+                if ($SalarioDiarioIntegrado==null) $l .= "SalarioDiarioIntegrado ";
+                $l = trim($l);
+                $this->status .= "; NOM164 El(Los) atributo(s) $l debe(n) existir.";
+                $this->codigo .= "; NOM164";
+                $error=true;
             }
         }
         //
         if ((int)$TipoContrato >= 1 && (int)$TipoContrato <= 8) {
             if ($n_E_RegistroPatronal == null) {
-                $this->status = "NOM162; El atributo Nomina.Emisor.RegistroPatronal se debe registrar";
-                $this->codigo = "162 ".$this->status;
-                return false;
+                $this->status .= "; NOM162 El atributo Nomina.Emisor.RegistroPatronal se debe registrar.";
+                $this->codigo .= "; NOM162";
+                $error=true;
             }
         } else {
             if ($n_E_RegistroPatronal != null) {
-                $this->status = "NOM163; El atributo Nomina.Emisor.RegistroPatronal NO se debe registrar";
-                $this->codigo = "163 ".$this->status;
-                return false;
+                $this->status .= "; NOM163 El atributo Nomina.Emisor.RegistroPatronal  no se debe registrar.";
+                $this->codigo .= "; NOM163";
+                $error=true;
             }
         }
         // }}}
         // {{{ Valida Receptor
         $ok = $this->Checa_Catalogo("c_TipoContrato",$TipoContrato);
         if (!$ok) {
-            $this->status = "NOM171; El valor del atributo Nomina.Receptor.TipoContrato no cumple con un valor del catálogo c_TipoContrato";
-            $this->codigo = "171 ".$this->status;
-            return false;
+            $this->status .= "; NOM171 El valor del atributo Nomina.Receptor.TipoContrato no cumple con un valor del catálogo c_TipoContrato.";
+            $this->codigo .= "; NOM171";
+            $error=true;
         }
         if ($TipoJornada != null) {
             $ok = $this->Checa_Catalogo("c_TipoJornada",$TipoJornada);
             if (!$ok) {
-                $this->status = "NOM172; El valor del atributo Nomina.Receptor.TipoJornada no cumple con un valor del catálogo c_TipoJornada";
-                $this->codigo = "172 ".$this->status;
-                return false;
+                $this->status .= "; NOM172 El valor del atributo Nomina.Receptor.TipoJornada no cumple con un valor del catálogo c_TipoJornada.";
+                $this->codigo .= "; NOM172";
+                $error=true;
             }
         }
         $a_FechaInicioRelLaboral = new Datetime($FechaInicioRelLaboral);
         if ($FechaInicioRelLaboral != null) {
             if ($a_FechaInicioRelLaboral > $FechaFinalPago) {
-                $this->status = "NOM173; El valor del atributo Nomina.Receptor.FechaInicioRelLaboral no es menor o igual al atributo a FechaFinalPago.";
-                $this->codigo = "173 ".$this->status;
-                return false;
+                $this->status .= "; NOM173 El valor del atributo Nomina.Receptor.FechaInicioRelLaboral no es menor o igual al atributo a FechaFinalPago.";
+                $this->codigo .= "; NOM173";
+                $error=true;
             }
         }
         // Validar antiguedad
@@ -656,11 +696,12 @@ class Nomi12 {
                 $dias = $dias->format("%a");
                 $dias += 1;
                 $semanas = floor($dias / 7);
+                if ($semanas==0) $semanas=1;
                 $aux2 = $matches[1];
                 if ($aux2 > $semanas) {
-                    $this->status = "NOM174; El valor numerico del atributo Nomina.Receptor.Antigüedad ($aux2) no es menor o igual al cociente de (la suma del número de días transcurridos entre la FechaInicioRelLaboral y la FechaFinalPago más uno) dividido entre siete ($semanas).";
-                    $this->codigo = "174 ".$this->status;
-                    return false;
+                    $this->status .= "; NOM174 El valor numérico del atributo Nomina.Receptor.Antigüedad no es menor o igual al cociente de (la suma del número de días transcurridos entre la FechaInicioRelLaboral y la FechaFinalPago más uno) dividido entre siete.";
+                    $this->codigo .= "; NOM174";
+                    $error=true;
                 }
             } else {
                 $int_diff = date_diff($FechaFinalPago, $a_FechaInicioRelLaboral);
@@ -669,17 +710,17 @@ class Nomi12 {
                 if ($int_diff->m>0) $a_diff .= $int_diff->m."M";
                 $a_diff .= $int_diff->d."D";
                 if ($a_diff != $Antiguedad) {
-                    $this->status = "NOM175; El valor del atributo Nomina.Receptor.Antigüedad ($Antiguedad). no cumple con el número de años, meses y días transcurridos entre la FechaInicioRelLaboral y la FechaFinalPago ($a_diff).";
-                    $this->codigo = "175 ".$this->status;
-                    return false;
+                    $this->status .= "; NOM175 El valor del atributo Nomina.Receptor.Antigüedad. no cumple con el número de años, meses y días transcurridos entre la FechaInicioRelLaboral y la FechaFinalPago.";
+                    $this->codigo .= "; NOM175";
+                    $error=true;
                 }
             }
         }
         $ok = $this->Checa_Catalogo("c_TipoRegimen",$TipoRegimen);
         if (!$ok) {
-            $this->status = "NOM176; El valor del atributo Nomina.Receptor.TipoRegimen no cumple con un valor del catálogo c_TipoRegimen";
-            $this->codigo = "176 ".$this->status;
-            return false;
+            $this->status .= "; NOM176 El valor del atributo Nomina.Receptor.TipoRegimen no cumple con un valor del catálogo c_TipoRegimen.";
+            $this->codigo .= "; NOM176";
+            $error=true;
         }
         $TipoContrato = (int)$TipoContrato;
         $TipoRegimen = (int)$TipoRegimen;
@@ -687,89 +728,92 @@ class Nomi12 {
             if ($TipoRegimen==2 || $TipoRegimen==3 || $TipoRegimen==4) {
                 // OK
             } else {
-                $this->status = "NOM177; El atributo Nomina.Receptor.TipoRegimen no es 02, 03 ó 04.";
-                $this->codigo = "177 ".$this->status;
-                return false;
+                $this->status .= "; NOM177 El atributo Nomina.Receptor.TipoRegimen no es 02, 03 ó 04.";
+                $this->codigo .= "; NOM177";
+                $error=true;
             }
         }
         if ($TipoContrato >= 9) {
             if ($TipoRegimen>=5 && $TipoRegimen<=99) {
                 // OK
             } else {
-                $this->status = "NOM178; El atributo Nomina.Receptor.TipoRegimen no está entre 05 a 99.";
-                $this->codigo = "178 ".$this->status;
-                return false;
+                $this->status .= "; NOM178 El atributo Nomina.Receptor.TipoRegimen no está entre 05 a 99.";
+                $this->codigo .= "; NOM178";
+                $error=true;
             }
         }
         $ok = $this->Checa_Catalogo("c_RiesgoPuesto",$RiesgoPuesto);
         if (!$ok) {
-            $this->status = "NOM179; El valor del atributo Nomina.Receptor.RiesgoPuesto no cumple con un valor del catálogo c_RiesgoPuesto";
-            $this->codigo = "179 ".$this->status;
-            return false;
+            $this->status .= "; NOM179 El valor del atributo Nomina.Receptor.RiesgoPuesto no cumple con un valor del catálogo c_RiesgoPuesto.";
+            $this->codigo .= "; NOM179";
+            $error=true;
         }
         $ok = $this->Checa_Catalogo("c_PeriodicidadPago",$PeriodicidadPago);
         if (!$ok) {
-            $this->status = "NOM180; El valor del atributo Nomina.Receptor.PeriodicidadPago no cumple con un valor del catálogo c_PeriodicidadPago";
-            $this->codigo = "180 ".$this->status;
-            return false;
+            $this->status .= "; NOM180 El valor del atributo Nomina.Receptor.PeriodicidadPago no cumple con un valor del catálogo c_PeriodicidadPago.";
+            $this->codigo .= "; NOM180";
+            $error=true;
         }
         if ($Banco != NULL) {
             $ok = $this->Checa_Catalogo("c_Banco",$Banco);
             if (!$ok) {
-                $this->status = "NOM181; El valor del atributo Nomina.Receptor.Banco no cumple con un valor del catálogo c_Banco";
-                $this->codigo = "181 ".$this->status;
-                return false;
+                $this->status .= "; NOM181 El valor del atributo Nomina.Receptor.Banco no cumple con un valor del catálogo c_Banco.";
+                $this->codigo .= "; NOM181";
+                $error=true;
             }
         }
         if ($CuentaBancaria != null) {
             $largo = strlen($CuentaBancaria);
             if ($largo==18) { // CLABE
                 if ($Banco != NULL) {
-                    $this->status = "NOM183; El nodo Banco no debe existir (Es CLABE)";
-                    $this->codigo = "183 ".$this->status;
-                    return false;
+                    $this->status .= "; NOM183 El atributo Banco no debe existir.";
+                    $this->codigo .= "; NOM183";
+                    $error=true;
                 }
                 $ok = $this->Valida_CLABE($CuentaBancaria);
                 if (!$ok) {
-                    $this->status = "NOM184; El dígito de control del atributo CLABE no es correcto.";
-                    $this->codigo = "184 ".$this->status;
-                    return false;
+                    $this->status .= "; NOM184 El dígito de control del atributo CLABE no es correcto.";
+                    $this->codigo .= "; NOM184";
+                    $error=true;
                 }
             } elseif ($largo==16 || $largo==11 || $largo==10) { // debito, cuenta, tele
                 if ($Banco == NULL) {
-                    $this->status = "NOM185; El nodo Banco debe existir.";
-                    $this->codigo = "185 ".$this->status;
-                    return false;
+                    $this->status .= "; NOM185 El atributo Banco debe existir.";
+                    $this->codigo .= "; NOM185";
+                    $error=true;
                 }
             } else {
-                $this->status = "NOM182; El atributo CuentaBancaria no cumple con la longitud de 10, 11, 16 ó 18 posiciones.";
-                $this->codigo = "182 ".$this->status;
-                return false;
+                $this->status .= "; NOM182 El atributo CuentaBancaria no cumple con la longitud de 10, 11, 16 ó 18 posiciones.";
+                $this->codigo .= "; NOM182";
+                $error=true;
             }
         }
         $ok = $this->Checa_Catalogo("c_Estado",$ClaveEntFed,"MEX");
         if (!$ok) {
-            $this->status = "NOM186; El valor del atributo ClaveEntFed no cumple con un valor del catálogo c_Estado.";
-            $this->codigo = "186 ".$this->status;
-            return false;
+            $this->status .= "; NOM186 El valor del atributo ClaveEntFed no cumple con un valor del catálogo c_Estado.";
+            $this->codigo .= "; NOM186";
+            $error=true;
         }
         if ($n_subs>0) {
             $suma=0;
             for ($i=0; $i<$n_subs; $i++) {
                 $SubContratacion = $subs->item($i);
                 $RfcLabora = $SubContratacion->getAttribute("RfcLabora");
-                $row= $this->lee_l_rfc($RfcLabora);
-                if (sizeof($row)==0) {
-                    $this->status = "NOM187; El valor del atributo Nomina.Receptor.SubContratacion.RfcLabora no está en la lista de RFC (l_RFC).";
-                    $this->codigo = "187 ".$this->status;
-                    return false;
+                if ($RfcLabora != "XEXX010101000") {
+                    // 24/mar/2017 se permite el RFC generico extranjero
+                    $row= $this->lee_l_rfc($RfcLabora);
+                    if (sizeof($row)==0) {
+                        $this->status .= "; NOM187 El valor del atributo Nomina.Receptor.SubContratacion.RfcLabora no está en la lista de RFC (l_RFC).";
+                        $this->codigo .= "; NOM187";
+                        $error=true;
+                    }
                 }
                 $suma += (double)$SubContratacion->getAttribute("PorcentajeTiempo");
             }
-            if ($suma!=100) {
-                $this->status = "NOM188; La suma del valor de Nomina.Receptor.SubContratacion.PorcentajeTiempo no es igual a 100";
-                $this->codigo = "188 ".$this->status;
-                return false;
+            if (abs($suma-100)>0.001) {
+                $this->status .= "; NOM188 La suma de los valores registrados en el atributo Nomina.Receptor.SubContratacion.PorcentajeTiempo no es igual a 100.";
+                $this->codigo .= "; NOM188";
+                $error=true;
             }
         }
         // }}} FIN de Receptor
@@ -792,9 +836,9 @@ class Nomi12 {
                 $TipoPercepcion = $Percepcion->getAttribute("TipoPercepcion");
                 $ok = $this->Checa_Catalogo("c_TipoPercepcion",$TipoPercepcion);
                 if (!$ok) {
-                    $this->status = "NOM196; El valor del atributo Nomina.Percepciones.Percepcion.TipoPercepcion ($TipoPercepcion) no cumple con un valor del catálogo c_TipoPercepcion.";
-                    $this->codigo = "196 ".$this->status;
-                    return false;
+                    $this->status .= "; NOM196 El valor del atributo Nomina.Percepciones.Percepcion.TipoPercepcion no cumple con un valor del catálogo c_TipoPercepcion.";
+                    $this->codigo .= "; NOM196";
+                    $error=true;
                 }
                 $ImporteGravado = (double)$Percepcion->getAttribute("ImporteGravado");
                 $ImporteExento = (double)$Percepcion->getAttribute("ImporteExento");
@@ -822,38 +866,38 @@ class Nomi12 {
                 $largo = $l_AccionesOTitulos->length;
                 if ($largo==0) { // NO Hay NODO acciones
                     if ($TipoPercepcion=="045") {
-                        $this->status = "NOM202; El elemento AccionesOTitulos debe existir. Ya que la clave expresada en el atributo TipoPercepcion es 045.";
-                        $this->codigo = "202 ".$this->status;
-                        return false;
+                        $this->status .= "; NOM202 El elemento AccionesOTitulos debe existir. Ya que la clave expresada en el atributo TipoPercepcion es 045.";
+                        $this->codigo .= "; NOM202";
+                        $error=true;
                     }
                 } else { // SI Hay NODO acciones
                     if ($TipoPercepcion!="045") {
-                        $this->status = "NOM203; El elemento AccionesOTitulos no debe existir. Ya que la clave expresada en el atributo TipoPercepcion no es 045.";
-                        $this->codigo = "203 ".$this->status;
-                        return false;
+                        $this->status .= "; NOM203 El elemento AccionesOTitulos no debe existir. Ya que la clave expresada en el atributo TipoPercepcion no es 045.";
+                        $this->codigo .= "; NOM203";
+                        $error=true;
                     }
                 }
                 $l_HorasExtra = $Percepcion->getElementsByTagName('HorasExtra');
                 $largo = $l_HorasExtra->length;
                 if ($largo==0) { // NO Hay NODO HorasExtra
                     if ($TipoPercepcion=="019") {
-                        $this->status = "NOM204; El elemento HorasExtra, debe existir. Ya que la clave expresada en el atributo TipoPercepcion es 019.";
-                        $this->codigo = "204 ".$this->status;
-                        return false;
+                        $this->status .= "; NOM204 El elemento HorasExtra, debe existir. Ya que la clave expresada en el atributo TipoPercepcion es 019.";
+                        $this->codigo .= "; NOM204";
+                        $error=true;
                     }
                 } else { // SI Hay NODO HorasExtra
                     if ($TipoPercepcion!="019") {
-                        $this->status = "NOM205; El elemento HorasExtra, no debe existir. Ya que la clave expresada en el atributo TipoPercepcion no es 019.";
-                        $this->codigo = "205 ".$this->status;
-                        return false;
+                        $this->status .= "; NOM205 El elemento HorasExtra, no debe existir. Ya que la clave expresada en el atributo TipoPercepcion no es 019.";
+                        $this->codigo .= "; NOM205";
+                        $error=true;
                     }
                     foreach ($l_HorasExtra as $HorasExtra) {
                         $TipoHoras = $HorasExtra->getAttribute("TipoHoras");
                         $ok = $this->Checa_Catalogo("c_TipoHoras",$TipoHoras);
                         if (!$ok) {
-                            $this->status = "NOM208; El nodo TipoHoras Nomina.Percepciones.Percepcon.HorasExtra.TipoHoras no cumple con un valor del catálogo c_TipoHoras";
-                            $this->codigo = "208 ".$this->status;
-                            return false;
+                            $this->status .= "; NOM208 El valor del atributo Nomina.Percepciones.Percepcon.HorasExtra.TipoHoras no cumple con un valor del catálogo c_TipoHoras.";
+                            $this->codigo .= "; NOM208";
+                            $error=true;
                         }
                     }
                 }
@@ -863,75 +907,75 @@ class Nomi12 {
                        (double)$TotalJubilacionPensionRetiro;
             $a_suma2 = (double)$TotalGravado+(double)$TotalExento;
             if (abs($a_suma1-$a_suma2)>0.001) {
-                $this->status = "NOM189; La suma de los valores de los atributos TotalSueldos más TotalSeparacionIndemnizacion más TotalJubilacionPensionRetiro ($a_suma1) no es igual a la suma de los valores de los atributos TotalGravado más TotalExento ($a_suma2).";
-                $this->codigo = "189 ".$this->status;
-                return false;
+                $this->status .= "; NOM189 La suma de los valores de los atributos TotalSueldos más TotalSeparacionIndemnizacion más TotalJubilacionPensionRetiro no es igual a la suma de los valores de los atributos TotalGravado más TotalExento.";
+                $this->codigo .= "; NOM189";
+                $error=true;
             }
             if (abs((double)$TotalGravado-$t_gravado)>0.001) {
-                $this->status = "NOM193; El valor del atributo Nomina.Percepciones.TotalGravado ($TotalGravado), no es igual a la suma de los atributos ImporteGravado de los nodos Percepcion ($t_gravado).";
-                $this->codigo = "193 ".$this->status;
-                return false;
+                $this->status .= "; NOM193 El valor del atributo Nomina.Percepciones.TotalGravado, no es igual a la suma de los atributos ImporteGravado de los nodos Percepcion.";
+                $this->codigo .= "; NOM193";
+                $error=true;
             }
             if (abs((double)$TotalExento-$t_exento)>0.001) {
-                $this->status = "NOM194; El valor del atributo Nomina.Percepciones.TotalExento ($TotalExento), no es igual a la suma de los atributos ImporteExento de los nodos Percepcion ($t_exento).";
-                $this->codigo = "194 ".$this->status;
-                return false;
+                $this->status .= "; NOM194 El valor del atributo Nomina.Percepciones.TotalExento, no es igual a la suma de los atributos ImporteExento de los nodos Percepcion.";
+                $this->codigo .= "; NOM194";
+                $error=true;
             }
             if ($TotalSueldos != null && 
                 abs((double)$TotalSueldos-$t_sueldo)>0.001) {
-                $this->status = "NOM190; El valor del atributo Nomina.Percepciones.TotalSueldos ($TotalSueldos), no es igual a la suma de los atributos ImporteGravado e ImporteExento donde la clave expresada en el atributo TipoPercepcion es distinta de 022 Prima por Antigüedad, 023 Pagos por separación, 025 Indemnizaciones, 039 Jubilaciones, pensiones o haberes de retiro en una exhibición y 044 Jubilaciones, pensiones o haberes de retiro en parcialidades ($t_sueldo).";
-                $this->codigo = "190 ".$this->status;
-                return false;
+                $this->status .= "; NOM190 El valor del atributo Nomina.Percepciones.TotalSueldos , no es igual a la suma de los atributos ImporteGravado e ImporteExento donde la clave expresada en el atributo TipoPercepcion es distinta de 022 Prima por Antigüedad, 023 Pagos por separación, 025 Indemnizaciones, 039 Jubilaciones, pensiones o haberes de retiro en una exhibición y 044 Jubilaciones, pensiones o haberes de retiro en parcialidades.";
+                $this->codigo .= "; NOM190";
+                $error=true;
             }
             if ((double)$TotalSeparacionIndemnizacion != $t_separacion) {
-                $this->status = "NOM191; El valor del atributo Nomina.Percepciones.TotalSeparacionIndemnizacion, no es igual a la suma de los atributos ImporteGravado e ImporteExento donde la clave en el atributo TipoPercepcion es igual a 022 Prima por Antigüedad, 023 Pagos por separación ó 025 Indemnizaciones.";
-                $this->codigo = "191 ".$this->status;
-                return false;
+                $this->status .= "; NOM191 El valor del atributo Nomina.Percepciones.TotalSeparacionIndemnizacion, no es igual a la suma de los atributos ImporteGravado e ImporteExento donde la clave en el atributo TipoPercepcion es igual a 022 Prima por Antigüedad, 023 Pagos por separación ó 025 Indemnizaciones.";
+                $this->codigo .= "; NOM191";
+                $error=true;
             }
             /* TODO : Falta ejemplo NO se como hacer que llegue por aqui */
             if (abs((double)$TotalJubilacionPensionRetiro-$t_jubilacion)>0.001) {
-                $this->status = "NOM192; El valor del atributo Nomina.Percepciones.TotalJubilacionPensionRetiro, no es igual a la suma de los atributos ImporteGravado e importeExento donde la clave expresada en el atributo TipoPercepcion es igual a 039(Jubilaciones, pensiones o haberes de retiro en una exhibición)  ó 044 (Jubilaciones, pensiones o haberes de retiro en parcialidades).";
-                $this->codigo = "192 ".$this->status;
-                return false;
+                $this->status .= "; NOM192 El valor del atributo Nomina.Percepciones.TotalJubilacionPensionRetiro, no es igual a la suma de los atributos ImporteGravado e importeExento donde la clave expresada en el atributo TipoPercepcion es igual a 039(Jubilaciones, pensiones o haberes de retiro en una exhibición)  ó 044 (Jubilaciones, pensiones o haberes de retiro en parcialidades).";
+                $this->codigo .= "; NOM192";
+                $error=true;
             }
             /* TODO : Falta ejemplo NO se como hacer que llegue por aqui */
             if ($hay_sueldo && $TotalSueldos == null) {
-                $this->status = "NOM197; TotalSueldos, debe existir. Ya que la clave expresada en TipoPercepcion es distinta de 022, 023, 025, 039 y 044";
-                $this->codigo = "197 ".$this->status;
-                return false;
+                $this->status .= "; NOM197 TotalSueldos, debe existir. Ya que la clave expresada en TipoPercepcion es distinta de 022, 023, 025, 039 y 044.";
+                $this->codigo .= "; NOM197";
+                $error=true;
             }
             if ($hay_separacion && $TotalSeparacionIndemnizacion == null) {
-                $this->status = "NOM198; TotalSeparacionIndemnizacion debe existir. Ya que la clave expresada en TipoPercepcion es 022 ó 023 ó 025.";
-                $this->codigo = "198 ".$this->status;
-                return false;
+                $this->status .= "; NOM198 TotalSeparacionIndemnizacion y el elemento SeparacionIndemnizacion, debe existir. Ya que la clave expresada en TipoPercepcion es 022 ó 023 ó 025.";
+                $this->codigo .= "; NOM198";
+                $error=true;
             }
             if (!$hay_separacion && $TotalSeparacionIndemnizacion != null) {
-                $this->status = "NOM198; TotalSeparacionIndemnizacion no debe existir. Ya que la clave expresada en TipoPercepcion no es 022 ó 023 ó 025.";
-                $this->codigo = "198 ".$this->status;
-                return false;
+                $this->status .= "; NOM198 TotalSeparacionIndemnizacion y el elemento SeparacionIndemnizacion, debe existir. Ya que la clave expresada en TipoPercepcion es 022 ó 023 ó 025.";
+                $this->codigo .= "; NOM198";
+                $error=true;
             }
             if ($hay_jubilacion && $TotalJubilacionPensionRetiro == null) {
-                $this->status = "NOM199; TotalJubilacionPensionRetiro debe existir,  ya que la clave expresada en el atributo TipoPercepcion es 039 ó 044.";
-                $this->codigo = "199 ".$this->status;
-                return false;
+                $this->status .= "; NOM199 TotalJubilacionPensionRetiro y el elemento JubilacionPensionRetiro debe existir,  ya que la clave expresada en el atributo TipoPercepcion es 039 ó 044.";
+                $this->codigo .= "; NOM199";
+                $error=true;
             }
             if (!$hay_jubilacion && $TotalJubilacionPensionRetiro != null) {
-                $this->status = "NOM199; TotalJubilacionPensionRetiro no debe existir,  ya que la clave expresada en el atributo TipoPercepcion no es 039 ó 044,";
-                $this->codigo = "199 ".$this->status;
-                return false;
+                $this->status .= "; NOM199 TotalJubilacionPensionRetiro y el elemento JubilacionPensionRetiro debe existir,  ya que la clave expresada en el atributo TipoPercepcion es 039 ó 044.";
+                $this->codigo .= "; NOM199";
+                $error=true;
             }
             if ($t_gravado + $t_exento <= 0) {
-                $this->status = "NOM195; Los importes de los atributos ImporteGravado e ImporteExento no es mayor que cero.";
-                $this->codigo = "195 ".$this->status;
-                return false;
+                $this->status .= "; NOM195 La suma de los importes de los atributos ImporteGravado e ImporteExento no es mayor que cero.";
+                $this->codigo .= "; NOM195";
+                $error=true;
             }
             $l_JubilacionPensionRetiro = $Percepciones->getElementsByTagName('JubilacionPensionRetiro');
             $largo = $l_JubilacionPensionRetiro->length;
             if ($largo==0) { //Si no hay nodo jubilacion
                 if ($hay_jubilacion) {
-                    $this->status = "NOM199; El elemento JubilacionPensionRetiro debe existir,  ya que la clave expresada en el atributo TipoPercepcion es 039 ó 044.";
-                    $this->codigo = "199 ".$this->status;
-                    return false;
+                    $this->status .= "; NOM199 TotalJubilacionPensionRetiro y el elemento JubilacionPensionRetiro debe existir,  ya que la clave expresada en el atributo TipoPercepcion es 039 ó 044.";
+                    $this->codigo .= "; NOM199";
+                    $error=true;
                 }
             } else { // SI hay nodo jubilacion
                 $JubilacionPensionRetiro = $l_JubilacionPensionRetiro->item(0);
@@ -942,47 +986,60 @@ class Nomi12 {
                 $IngresoNoAcumulable = $JubilacionPensionRetiro->getAttribute("IngresoNoAcumulable");
                 if ($TotalUnaExhibicion!=null &&
                     ($TotalParcialidad!=null || $MontoDiario!=null) ) {
-                    $this->status = "NOM209; Los atributos MontoDiario y TotalParcialidad no deben de existir, ya que existe valor en TotalUnaExhibicion";
-                    $this->codigo = "209 ".$this->status;
-                    return false;
+                    $this->status .= "; NOM209 Los atributos MontoDiario y TotalParcialidad no deben de existir, ya que existe valor en TotalUnaExhibicion.";
+                    $this->codigo .= "; NOM209";
+                    $error=true;
                     }
                 if ($TotalParcialidad!=null &&
                     ($TotalUnaExhibicion!=null || $MontoDiario==null) ) {
-                    $this->status = "NOM210; El atributo MontoDiario debe existir y el atributo TotalUnaExhibicion no debe existir, ya que Nomina.Percepciones.JubilacionPensionRetiro.TotalParcialidad tiene valor.";
-                    $this->codigo = "210 ".$this->status;
-                    return false;
+                    $this->status .= "; NOM210 El atributo MontoDiario debe existir y el atributo TotalUnaExhibicion no debe existir, ya que Nomina.Percepciones.JubilacionPensionRetiro.TotalParcialidad tiene valor.";
+                    $this->codigo .= "; NOM210";
+                    $error=true;
                     }
                 if (!$hay_jubilacion) {
-                    $this->status = "NOM199; El elemento JubilacionPensionRetiro  no debe existir,  ya que la clave expresada en el atributo TipoPercepcion no es 039 ó 044,";
-                    $this->codigo = "199 ".$this->status;
-                    return false;
+                    $this->status .= "; NOM199 El elemento JubilacionPensionRetiro  no debe existir,  ya que la clave expresada en el atributo TipoPercepcion no es 039 ó 044.";
+                    $this->codigo .= "; NOM199";
+                    $error=true;
                 }
                 if ($clave_39 && ($TotalUnaExhibicion==null || 
                                   $TotalParcialidad!=null || 
                                   $MontoDiario!=null) ) {
-                    $this->status = "NOM200; TotalUnaExhibicion debe existir y no deben existir TotalParcialidad, MontoDiario. Ya que la clave expresada en el atributo TipoPercepcion es 039.";
-                    $this->codigo = "200 ".$this->status;
-                    return false;
+                    $this->status .= "; NOM200 TotalUnaExhibicion debe existir y no deben existir TotalParcialidad, MontoDiario. Ya que la clave expresada en el atributo TipoPercepcion es 039.";
+                    $this->codigo .= "; NOM200";
+                    $error=true;
                 }
                 if ($clave_44 && ($TotalUnaExhibicion!=null || 
                                   $TotalParcialidad==null || 
                                   $MontoDiario==null) ) {
-                    $this->status = "NOM201; TotalUnaExhibicion no debe existir y deben existir TotalParcialidad, MontoDiario. Ya que la clave expresada en el atributo TipoPercepcion es 044.";
-                    $this->codigo = "201 ".$this->status;
-                    return false;
+                    $this->status .= "; NOM201 TotalUnaExhibicion no debe existir y deben existir TotalParcialidad, MontoDiario. Ya que la clave expresada en el atributo TipoPercepcion es 044.";
+                    $this->codigo .= "; NOM201";
+                    $error=true;
                 }
             }
-            $l_SeparacionIndemizacion = $Percepciones->getElementsByTagName('SeparacionIndemnizacion');
-            $largo = $l_SeparacionIndemizacion->length;
+            $l_SeparacionIndemnizacion = $Percepciones->getElementsByTagName('SeparacionIndemnizacion');
+            $largo = $l_SeparacionIndemnizacion->length;
             if ($largo==0 && $hay_separacion) { //Si no hay nodo separacion
-                $this->status = "NOM198; El elemento SeparacionIndemnizacion, debe existir. Ya que la clave expresada en TipoPercepcion es 022 ó 023 ó 025.";
-                $this->codigo = "198 ".$this->status;
-                return false;
+                $this->status .= "; NOM198 TotalSeparacionIndemnizacion y el elemento SeparacionIndemnizacion, debe existir. Ya que la clave expresada en TipoPercepcion es 022 ó 023 ó 025.";
+                $this->codigo .= "; NOM198";
+                $error=true;
             }
             if ($largo!=0 && !$hay_separacion) { //no hay nodo separacion
-                $this->status = "NOM198; El elemento SeparacionIndemnizacion, no debe existir. Ya que la clave expresada en TipoPercepcion no es 022 ó 023 ó 025.";
-                $this->codigo = "198 ".$this->status;
-                return false;
+                $this->status .= "; NOM198 TotalSeparacionIndemnizacion y el elemento SeparacionIndemnizacion, debe existir. Ya que la clave expresada en TipoPercepcion es 022 ó 023 ó 025.";
+                $this->codigo .= "; NOM198";
+                $error=true;
+            }
+            foreach ($l_SeparacionIndemnizacion as $SeparacionIndemnizacion) {
+                $NumAnosServicio = $SeparacionIndemnizacion->getAttribute(utf8_encode("NumAñosServicio"));
+                if ((int)$NumAnosServicio<0) {
+                    $this->status .= "; NOM226 El valor del atributo Nomina.Percepciones:Percepcion:SeparacionIndemnizacion:NumAñosServicio no cumple con el valor minimo permitido.";
+                    $this->codigo .= "; NOM226";
+                    $error=true;
+                }
+                if ((int)$NumAnosServicio>99) {
+                    $this->status .= "; NOM226 El valor del atributo Nomina.Percepciones:Percepcion:SeparacionIndemnizacion:NumAñosServicio no cumple con el valor maximo permitido.";
+                    $this->codigo .= "; NOM226";
+                    $error=true;
+                }
             }
         } // Hay percepciones
         // }}}
@@ -998,15 +1055,15 @@ class Nomi12 {
                 $TipoDeduccion = $Deduccion->getAttribute("TipoDeduccion");
                 $ok = $this->Checa_Catalogo("c_TipoDeduccion", $TipoDeduccion);
                 if (!$ok) {
-                    $this->status = "NOM213; El valor de Nomina.Deducciones.Deduccion.TipoDeduccion no cumple con un valor del catálogo c_TipoDeduccion .";
-                    $this->codigo = "213 ".$this->status;
-                    return false;
+                    $this->status .= "; NOM213 El valor del atributo Nomina.Deducciones.Deduccion.TipoDeduccion no cumple con un valor del catálogo c_TipoDeduccion.";
+                    $this->codigo .= "; NOM213";
+                    $error=true;
                 }
                 $Importe = (double)$Deduccion->getAttribute("Importe");
                 if ($Importe<=0) {
-                    $this->status = "NOM216; Nomina.Deducciones.Deduccion.Importe no es mayor que cero.";
-                    $this->codigo = "216 ".$this->status;
-                    return false;
+                    $this->status .= "; NOM216 Nomina.Deducciones.Deduccion.Importe no es mayor que cero.";
+                    $this->codigo .= "; NOM216";
+                    $error=true;
                 }
                 if ($TipoDeduccion=="002") { // Impuesto
                     $hay_2 = true; 
@@ -1019,15 +1076,15 @@ class Nomi12 {
             } // foreach deducc
             if ($hay_2) { // Si hubo concepto deduccion impuesto
                 if (abs((double)$TotalImpuestosRetenidos-$t_impu)>0.001) {
-                    $this->status = "NOM211; El valor en el atributo Nomina.Deducciones.TotalImpuestosRetenidos ($TotalImpuestosRetenidos) no es igual a la suma de los atributos Importe de las deducciones que tienen expresada la clave 002 en el atributo TipoDeduccion ($t_impu).";
-                    $this->codigo = "211 ".$this->status;
-                    return false;
+                    $this->status .= "; NOM211 El valor en el atributo Nomina.Deducciones.TotalImpuestosRetenidos no es igual a la suma de los atributos Importe de las deducciones que tienen expresada la clave 002 en el atributo TipoDeduccion.";
+                    $this->codigo .= "; NOM211";
+                    $error=true;
                 }
             } else { // NO hubo tipo impuesto
                 if ($TotalImpuestosRetenidos!=null) {
-                    $this->status = "NOM212; Nomina.Deducciones.TotalImpuestosRetenidos no debe existir ya que no existen deducciones con clave 002 en el atributo.";
-                    $this->codigo = "212 ".$this->status;
-                    return false;
+                    $this->status .= "; NOM212 Nomina.Deducciones.TotalImpuestosRetenidos no debe existir ya que no existen deducciones con clave 002 en el atributo TipoDeduccion.";
+                    $this->codigo .= "; NOM212";
+                    $error=true;
                 }
             }
         } // hay deduc
@@ -1038,42 +1095,42 @@ class Nomi12 {
         $Incapacidades = $nomi->getElementsByTagName('Incapacidad');
         if ($Incapacidades->length==0) { // No hay Nodo Incapacidades
             if ($hay_14) { // Hay el concepto Incapacidad en Percepciones
-                $this->status = "NOM206; El nodo Incapacidades debe existir, Ya que la clave expresada en el atributo TipoPercepcion es 014.";
-                $this->codigo = "206 ".$this->status;
-                return false;
+                $this->status .= "; NOM206 El nodo Incapacidades debe existir, Ya que la clave expresada en el atributo TipoPercepcion es 014.";
+                $this->codigo .= "; NOM206";
+                $error=true;
             }
             if ($hay_6) { // Hay el concepto Incapacidad en Deducciones
-                $this->status = "NOM214; Debe existir el elemento Incapacidades, ya que la clave expresada en Nomina.Deducciones.Deduccion.TipoDeduccion es 006.";
-                $this->codigo = "214 ".$this->status;
-                return false;
+                $this->status .= "; NOM214 Debe existir el elemento Incapacidades, ya que la clave expresada en Nomina.Deducciones.Deduccion.TipoDeduccion es 006.";
+                $this->codigo .= "; NOM214";
+                $error=true;
             }
         } else { // SI hay incapacidades
             if (!$hay_14 && !$hay_6) { // NO hay Incapacidad en Percepciones ni deducciones
-                $this->status = "NOM214; NO debe existir el elemento Incapacidades ya que la clave expresada en Nomina.Deducciones.Deduccion.TipoDeduccion NO es 006 NI 014";
-                $this->codigo = "214 ".$this->status;
-                return false;
+                $this->status .= "; NOM214 Debe existir el elemento Incapacidades, ya que la clave expresada en Nomina.Deducciones.Deduccion.TipoDeduccion es 006.";
+                $this->codigo .= "; NOM214";
+                $error=true;
             }
             $suma=0;
             foreach ($Incapacidades as $Incapacidad) {
                 $TipoIncapacidad = $Incapacidad->getAttribute("TipoIncapacidad");
                 $ok = $this->Checa_Catalogo("c_TipoIncapacidad", $TipoIncapacidad);
                 if (!$ok) {
-                    $this->status = "NOM224; Nomina.OtrosPagos.OtroPago.CompensacionSaldosAFavor.TipoIncapacidad no cumple con un valor del catálogo c_TIpoIncapacidad.";
-                    $this->codigo = "224 ".$this->status;
-                    return false;
+                    $this->status .= "; NOM224 El valor del atributo incapacidades.incapacidad.TipoIncapacidad no cumple con un valor del catálogo c_TIpoIncapacidad.";
+                    $this->codigo .= "; NOM224";
+                    $error=true;
                 }
                 $ImporteMonetario = $Incapacidad->getAttribute("ImporteMonetario");
                 $suma += (double)$ImporteMonetario;
             }
             if (abs($suma-$t_incapacidad)>0.001) { 
                 if ($hay_14) {
-                    $this->status = "NOM207; La suma de los campos ImporteMonetario ($suma) debe ser igual a la suma de los valores ImporteGravado e ImporteExento de la percepción ($t_incapacidad), Ya que la clave expresada en el atributo TipoPercepcion es 014.";
-                    $this->codigo = "207 ".$this->status;
-                    return false;
+                    $this->status .= "; NOM207 La suma de los campos ImporteMonetario debe ser igual a la suma de los valores ImporteGravado e ImporteExento de la percepción, Ya que la clave expresada en el atributo TipoPercepcion es 014.";
+                    $this->codigo .= "; NOM207";
+                    $error=true;
                 } else {
-                    $this->status = "NOM215; El atributo Deduccion:Importe no es igual a la suma de los nodos Incapacidad:ImporteMonetario.  Ya que la clave expresada en Nomina.Deducciones.Deduccion.TipoDeduccion es 006";
-                    $this->codigo = "215 ".$this->status;
-                    return false;
+                    $this->status .= "; NOM215 El atributo Deduccion:Importe no es igual a la suma de los nodos Incapacidad:ImporteMonetario.  Ya que la clave expresada en Nomina.Deducciones.Deduccion.TipoDeduccion es 006.";
+                    $this->codigo .= "; NOM215";
+                    $error=true;
                 }
             }
         }
@@ -1085,73 +1142,79 @@ class Nomi12 {
                 $TipoOtroPago = $OtroPago->getAttribute("TipoOtroPago");
                 $ok = $this->Checa_Catalogo("c_TipoOtroPago", $TipoOtroPago);
                 if (!$ok) {
-                    $this->status = "NOM217; Nomina.OtrosPagos.OtroPago.TipoOtroPago no cumple con un valor del catálogo c_TipoOtroPago ";
-                    $this->codigo = "217 ".$this->status;
-                    return false;
+                    $this->status .= "; NOM217 El valor del atributo Nomina.OtrosPagos.OtroPago.TipoOtroPago no cumple con un valor del catálogo c_TipoOtroPago.";
+                    $this->codigo .= "; NOM217";
+                    $error=true;
                 }
                 $Importe= (double)$OtroPago->getAttribute("Importe");
                 if ($Importe<=0) {
-                    $this->status = "NOM220; Nomina.OtrosPagos.OtroPago.Importe no es mayor que cero";
-                    $this->codigo = "220 ".$this->status;
-                    return false;
+                    $this->status .= "; NOM220 Nomina.OtrosPagos.OtroPago.Importe no es mayor que cero.";
+                    $this->codigo .= "; NOM220";
+                    $error=true;
                 }
                 $l_SubsidioAlEmpleo = $OtroPago->getElementsByTagName("SubsidioAlEmpleo");
                 $largo = $l_SubsidioAlEmpleo->length;
                 if ($largo==0) { // NO Hay NODO SubsidioAlEmpleo
                     if ($TipoOtroPago=="002") {
-                        $this->status = "NOM219; El nodo SubsidioAlEmpleo. debe existir, ya que el valor de Nomina.OtrosPagos.OtroPago.TipoOtroPago es 002";
-                        $this->codigo = "219 ".$this->status;
-                        return false;
+                        $this->status .= "; NOM219 El nodo SubsidioAlEmpleo. debe existir, ya que el valor de Nomina.OtrosPagos.OtroPago.TipoOtroPago es 002.";
+                        $this->codigo .= "; NOM219";
+                        $error=true;
                     }
                 } else { // SI Hay NODO SubsidioAlEmpleo
                     if ($TipoOtroPago!="002") {
-                        $this->status = "NOM219; El nodo SubsidioAlEmpleo NO debe existir, ya que el valor de Nomina.OtrosPagos.OtroPago.TipoOtroPago NO es 002";
-                        $this->codigo = "219 ".$this->status;
-                        return false;
+                        $this->status .= "; NOM219 El nodo SubsidioAlEmpleo. debe existir, ya que el valor de Nomina.OtrosPagos.OtroPago.TipoOtroPago es 002.";
+                        $this->codigo .= "; NOM219";
+                        $error=true;
                     }
                     $SubsidioAlEmpleo = $l_SubsidioAlEmpleo->item(0);
                     $SubsidioCausado = (double)$SubsidioAlEmpleo->getAttribute("SubsidioCausado");
                     if ($SubsidioCausado<$Importe) {
-                        $this->status = "NOM221; Nomina.OtrosPagos.OtroPago.SubsidioAlEmpleo.SubsidioCausado no es mayor o igual que el valor del atributo 'importe' del nodo OtroPago.";
-                        $this->codigo = "221 ".$this->status;
-                        return false;
+                        $this->status .= '; NOM221 Nomina.OtrosPagos.OtroPago.SubsidioAlEmpleo.SubsidioCausado no es mayor o igual que el valor del atributo "importe" del nodo OtroPago.';
+                        $this->codigo .= "; NOM221";
+                        $error=true;
                     }
                 }
                 $l_CompensacionSaldosAFavor = $OtroPago->getElementsByTagName("CompensacionSaldosAFavor");
                 $largo = $l_CompensacionSaldosAFavor->length;
                 if ($largo==0) { // NO Hay NODO CompensacionSaldosAFavor
                     if ($TipoOtroPago=="004") {
-                        $this->status = "NOM218; El nodo CompensacionSaldosAFavor. debe existir, ya que el valor de Nomina.OtrosPagos.OtroPago.TipoOtroPago es 004";
-                        $this->codigo = "218 ".$this->status;
-                        return false;
+                        $this->status .= "; NOM218 El nodo CompensacionSaldosAFavor debe existir, ya que el valor de Nomina.OtrosPagos.OtroPago.TipoOtroPago es 004.";
+                        $this->codigo .= "; NOM218";
+                        $error=true;
                     }
                 } else { // SI Hay NODO CompensacionSaldosAFavor
                     if ($TipoOtroPago!="004") {
-                        $this->status = "NOM218; El nodo CompensacionSaldosAFavor. NO debe existir, ya que el valor de Nomina.OtrosPagos.OtroPago.TipoOtroPago NO es 004";
-                        $this->codigo = "218 ".$this->status;
-                        return false;
+                        $this->status .= "; NOM218 El nodo CompensacionSaldosAFavor debe existir, ya que el valor de Nomina.OtrosPagos.OtroPago.TipoOtroPago es 004.";
+                        $this->codigo .= "; NOM218";
+                        $error=true;
                     }
                     $CompensacionSaldosAFavor = $l_CompensacionSaldosAFavor->item(0);
                     $SaldoAFavor = (double)$CompensacionSaldosAFavor->getAttribute("SaldoAFavor");
                     $RemanenteSalFav = (double)$CompensacionSaldosAFavor->getAttribute("RemanenteSalFav");
                     if ($SaldoAFavor < $RemanenteSalFav) {
-                        $this->status = "NOM222; Nomina.OtrosPagos.OtroPago.CompensacionSaldosAFavor.SaldoAFavor ($SaldoAFavor) no es mayor o igual que el valor del atributo CompensacionSaldosAFavor:RemanenteSalFav ($RemanenteSalFav).";
-                        $this->codigo = "222 ".$this->status;
-                        return false;
+                        $this->status .= "; NOM222 Nomina.OtrosPagos.OtroPago.CompensacionSaldosAFavor.SaldoAFavor no es mayor o igual que el valor del atributo CompensacionSaldosAFavor:RemanenteSalFav.";
+                        $this->codigo .= "; NOM222";
+                        $error=true;
                     }
                     $Ano = $CompensacionSaldosAFavor->getAttribute(utf8_encode("Año"));
                     if ((int)$Ano>(int)date("Y")) {
-                        $this->status = "NOM223; Nomina.OtrosPagos.OtroPago.CompensacionSaldosAFavor.Año  no es menor que el año en curso.";
-                        $this->codigo = "223 ".$this->status;
-                        return false;
+                        $this->status .= "; NOM223 Nomina.OtrosPagos.OtroPago.CompensacionSaldosAFavor.Año  no es menor que el año en curso.";
+                        $this->codigo .= "; NOM223";
+                        $error=true;
                     }
                 }
             }
         }
         // }}}
-        $this->status = "NOM000; Validacion de semantica nomina 1.2 correcta";
-        $this->codigo = "0 ".$this->status;
-        return $ok;
+        if ($error) {
+            if (substr($this->status,0,2)=="; ") $this->status=substr($this->status,2);
+            if (substr($this->codigo,0,2)=="; ") $this->codigo=substr($this->codigo,2);
+            return false;
+        } else {
+            $this->status = "NOM000 Validacion de semantica nomina 1.2 correcta.";
+            $this->codigo = 0;
+            return true;
+        }
     }
     // {{{ Checa_Catalogo
     private function Checa_Catalogo($catalogo,$llave,$prm1="",$prm2="",$prm3="") {
@@ -1202,8 +1265,9 @@ class Nomi12 {
     // }}}
     // {{{ cuenta_l_rfc
     private function cuenta_l_rfc() {
-        $cant= $this->conn->GetOne("select count(*) from pac_l_rfc");
-        $this->cuenta = $cant;
+        // $cant= $this->conn->GetOne("select count(*) from pac_l_rfc");
+        // $this->cuenta = $cant;
+        $this->cuenta = 1; // Siempre hay registros
     }
     // }}}
     // {{{ Cuenta_Catalogo

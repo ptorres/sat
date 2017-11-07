@@ -52,7 +52,7 @@ class Sem_CFDI {
             return false;
         }
         $xsl = new DOMDocument("1.0","UTF-8");
-        $xsl->load(__DIR__."/xslt/cadenaoriginal_3_3.xslt");
+        $xsl->load("xslt/cadenaoriginal_3_3.xslt");
         $proc = new XSLTProcessor();
         $proc->importStyleSheet($xsl);
         $paso = new DOMDocument("1.0","UTF-8");
@@ -131,6 +131,7 @@ class Sem_CFDI {
         $hay_Descuento = false;
         for ($i=0; $i<$nb_Conceptos; $i++) {
             $Concepto = $Conceptos->item($i);
+            if ($Concepto->parentNode->nodeName!="cfdi:Conceptos") continue;
             $c_Descuento = $Concepto->getAttribute("Descuento");
             if ($c_Descuento != null) $hay_Descuento=true;
             $c_Importe = $Concepto->getAttribute("Importe");
@@ -218,7 +219,7 @@ class Sem_CFDI {
                 $this->codigo = "33116 ".$this->status;
                 return false;
             }
-            $oficial = 20; // TODO: leer del lugar oficial
+            $oficial = 20; // TODO: leer del lugar oficial (Banco de Mexico)
             $inf = $oficial * (1 - $porc_moneda/100);
             $sup = $oficial * (1 + $porc_moneda/100);
             // echo "oficial=$oficial inf=$inf sup=$sup";
@@ -237,7 +238,9 @@ class Sem_CFDI {
             $this->codigo = "33118 ".$this->status;
             return false;
         }
-        $Limite_superior = 20000000; // TODO : Leerlo del SAT
+        // $Limite_superior=($TipoDeComprobante=="N")?2000000:100000000; // TODO : Leerlo del SAT
+        // 26/jul/2017 se quita tope
+        $Limite_superior=999999999999999999.999999;
         if ((double)$Total > $Limite_superior) {
             $req_conf = true;
             if ($Confirmacion == null) {
@@ -431,6 +434,7 @@ class Sem_CFDI {
         $gt_rete=0; $gt_tras=0;
         for ($i=0; $i<$nb_Conceptos; $i++) {
             $Concepto = $Conceptos->item($i);
+            if ($Concepto->parentNode->nodeName!="cfdi:Conceptos") continue;
             $ClaveProdServ = $Concepto->getAttribute("ClaveProdServ");
             $c_ProdServ = $this->Obten_Catalogo("c_ClaveProdServ", $ClaveProdServ);
             if (sizeof($c_ProdServ) == 0) {
@@ -557,13 +561,17 @@ class Sem_CFDI {
                             $this->codigo = "33158 ".$this->status;
                             return false;
                         }
-                        $row = $this->Obten_Catalogo("c_TasaOCuota",$TasaOCuota,$Impuesto,$TipoFactor);
-                        if (sizeof($row) == 0) {
-                            $this->status = "CFDI33159 El valor del campo TasaOCuota que corresponde a Traslado no contiene un valor del catálogo c_TasaOcuota o se encuentra fuera de rango.";
-                            $this->codigo = "33159 ".$this->status;
-                            return false;
-                        }
-                    }
+                        if ($Impuesto=="003" && $TipoFactor=="Cuota" && $TasaOCuota < 43.77) { // IEPS
+                            $ok=true;
+                        } else {
+                            $row = $this->Obten_Catalogo("c_TasaOCuota",$TasaOCuota,$Impuesto,$TipoFactor);
+                            if (sizeof($row) == 0) {
+                                $this->status = "CFDI33159 El valor del campo TasaOCuota que corresponde a Traslado no contiene un valor del catálogo c_TasaOcuota o se encuentra fuera de rango.";
+                                $this->codigo = "33159 ".$this->status;
+                                return false;
+                            } // No existe en cata
+                        } // NO es rango de IEPS
+                    } // Si es tasa o cuota
                     if ($i_Importe != null) {
                         $dec_importe = $this->cantidad_decimales($i_Importe);
                         $inf = ($Base - pow(10,-1*$dec_base)/2)*$TasaOCuota;;
@@ -611,12 +619,18 @@ class Sem_CFDI {
                         return false;
                     }
                     $TasaOCuota = $Retencion->getAttribute("TasaOCuota");
-                    $row = $this->Obten_Catalogo("c_TasaOCuota",$TasaOCuota,$Impuesto,$TipoFactor);
-                    if (sizeof($row) == 0) {
-                        $this->status = "CFDI33167 El valor del campo TasaOCuota que corresponde a Retención no contiene un valor del catálogo c_TasaOcuota o se encuentra fuera de rango.";
-                        $this->codigo = "33167 ".$this->status;
-                        return false;
-                    }
+                    if ( ($Impuesto=="001"&&$TipoFactor=="Tasa"&&$TasaOCuota<0.35) || // ISR correcto si <= 35%
+                         ($Impuesto=="002"&&$TipoFactor=="Tasa"&&$TasaOCuota<0.16) || // IVA correcto si <= 16%
+                         ($Impuesto=="003"&&$TipoFactor=="Cuota"&&$TasaOCuota<43.77) ) { // IEPS correcto si <= 43.77
+                         $ok = true;
+                    } else { // Si no es rango, busca catalogo
+                        $row = $this->Obten_Catalogo("c_TasaOCuota",$TasaOCuota,$Impuesto,$TipoFactor);
+                        if (sizeof($row) == 0) {
+                            $this->status = "CFDI33167 El valor del campo TasaOCuota que corresponde a Retención no contiene un valor del catálogo c_TasaOcuota o se encuentra fuera de rango.";
+                            $this->codigo = "33167 ".$this->status;
+                            return false;
+                        }
+                    } // No es rango de impuesto
                     $i_Importe = $Retencion->getAttribute("Importe");
                     $dec_impo = $this->cantidad_decimales($i_Importe);
                     $inf = ($Base - pow(10,-1*$dec_base)/2)*$TasaOCuota;
@@ -626,7 +640,7 @@ class Sem_CFDI {
                     $impo = (double)$i_Importe;
                     if ($impo < $inf || $impo > $sup) {
                         $this->status = "CFDI33169 El valor del campo Importe que corresponde a Retención no se encuentra entre el limite inferior y superior permitido.";
-                        $this->codigo = "33169 ".$this->status;
+                        $this->codigo = "33169 ".$this->status." Inf=$inf sup=$sup impo=$impo";;
                         return false;
                     }
                     if (!array_key_exists($Impuesto,$acum_rete)) $acum_rete[$Impuesto] = 0;

@@ -95,7 +95,13 @@ class Pagos10 {
              return false;
          }
          $Concepto = $Conceptos->item(0);
-         if ($Concepto->hasChildNodes()) {
+         $tiene = false;
+         foreach ($Concepto->childNodes as $node) {
+             if ($node->nodeType == XML_ELEMENT_NODE) {
+                 $tiene=true;
+             }
+         }
+         if ($tiene) {
              $this->status = "CRP112 No se deben registrar apartados dentro de Conceptos";
              $this->codigo = "112 ".$this->status;
              return false;
@@ -199,7 +205,7 @@ class Pagos10 {
            $inf = $oficial * (1 - $porc_moneda/100);
            $sup = $oficial * (1 + $porc_moneda/100);
 	   $req_conf = false;
-           //echo "oficial=$oficial inf=$inf sup=$sup TipoCambioP".$TipoCambioP;
+           // echo "porc_moneda=$porc_moneda oficial=$oficial inf=$inf sup=$sup TipoCambioP=$TipoCambioP";
 	   if ($MonedaP!="MXN"){
                if ($TipoCambioP < $inf || $TipoCambioP > $sup)  {
                    $req_conf = true;
@@ -440,6 +446,8 @@ class Pagos10 {
 		 }
 	      }
 	      if($ImpSaldoInsoluto != null){
+		 // echo " saldoinsoluto = ".$ImpSaldoInsoluto." saldoant = ".$ImpSaldoAnt. " ImpPagado = ".$ImpPagado. " ImpSaldoInsoluto= ".$ImpSaldoInsoluto;
+		 // echo "<br> uno = ".($ImpSaldoAnt - $ImpPagado). " dos === ".$ImpSaldoInsoluto;
 		 if($ImpSaldoInsoluto<0 || (($ImpSaldoAnt - $ImpPagado != $ImpSaldoInsoluto))){
                     $this->status = "CRP226 El campo ImpSaldoInsoluto debe ser mayor o igual a cero y calcularse con la suma de los campos ImSaldoAnt menos el ImpPagado o el Monto";
                     $this->codigo = "226 ".$this->status;

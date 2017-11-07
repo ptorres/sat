@@ -110,8 +110,8 @@ if (mb_check_encoding($nuevo,"utf-8") && $nuevo != $texto) {
 
 ///////////////////////////////////////////////////////////////////////////
 // Quita Addenda solo valida fiscal
-$texto = preg_replace('{<Addenda.*/Addenda>}is', '<Addenda/>', $texto);
-$texto = preg_replace('{<cfdi:Addenda.*/cfdi:Addenda>}is', '<cfdi:Addenda/>', $texto);
+$texto = preg_replace('{<Addenda.*/Addenda>}is', '', $texto);
+$texto = preg_replace('{<cfdi:Addenda.*/cfdi:Addenda>}is', '', $texto);
 ///////////////////////////////////////////////////////////////////////////
 // Para ver en la Pantalla el XML recibido  (sin addenda) 
 /*
@@ -385,7 +385,7 @@ function semantica_cce11() {
     require_once("semantica_cce11.php");
     $cce = new Cce11();
     $cce->valida($xml,$conn);
-    echo "<h2>$cce->codigo</h2>";
+    echo "<h2>".str_replace("; ","<br>",$cce->status)."</h2>";
     echo "<hr/>";
 }
 // }}} Valida semantica cce
@@ -396,7 +396,7 @@ function semantica_nomi12() {
     require_once("semantica_nomi12.php");
     $nomi = new Nomi12();
     $nomi->valida($xml,$conn);
-    echo "<h2>$nomi->codigo</h2>";
+    echo "<h2>".str_replace("; ","<br>",$nomi->status)."</h2>";
     echo "<hr/>";
 }
 // }}} Valida semantica nomi12
