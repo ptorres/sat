@@ -70,6 +70,7 @@ class Sem_CFDI {
             $this->codigo = "33105 ".$this->status;
             return false;
         }
+        $error=false;
         $ok = openssl_verify($cadena,
                              base64_decode($Sello),
                              $pubkeyid,
@@ -77,7 +78,7 @@ class Sem_CFDI {
         if (!$ok) {
             $this->status = "CFDI33102 El resultado de la digestión debe ser igual al resultado de la desencripción del sello.";
             $this->codigo = "33102 ".$this->status;
-            return false;
+            $error=true;
         }
         $hay_pagos = false; $hay_cce=false;
         $Complemento = $Comprobante->getElementsByTagName("Complemento");
@@ -823,6 +824,16 @@ class Sem_CFDI {
                     $this->codigo = "33193 ".$this->status;
                     return false;
                 }
+                if ($TipoFactor=="Cuota") {
+                    $tope = $row['cata_llave'];
+                    // echo "TasaOCuota=$TasaOCuota tope=$tope<br>";
+                    if ($TasaOCuota > $tope) {
+                        $this->status = "CFDI33193 El valor seleccionado debe corresponder a un valor del catalogo donde la columna TasaOCuota  ($TasaOCuota) sea menor o cual que el campo impuesto ($tope) y la columna factor corresponda con Cuota.";
+                        $this->codigo = "33193 ".$this->status;
+                        return false;
+                    }
+                }
+                $impo=$Traslado->getAttribute("Importe");
                 $impo=$Traslado->getAttribute("Importe");
                 $t_tras += (double)$impo;
                 $dec_impo = $this->cantidad_decimales($impo);
@@ -847,8 +858,10 @@ class Sem_CFDI {
             return false;
         }
         // }}} Impuestos
-        $this->status = "CFDI00000 Validacion semantica de CFDI 3.3 Correcta";
-        $this->codigo = "0 ".$this->status;
+        if (!$error) {
+            $this->status = "CFDI00000 Validacion semantica de CFDI 3.3 Correcta";
+            $this->codigo = "0 ".$this->status;
+        }
         return $ok;
     }
     // {{{ Checa_Catalogo
@@ -860,12 +873,15 @@ class Sem_CFDI {
         return $ok;
     }
     // }}}
-    // {{{ Oeten_Catalogo
+    // {{{ Obten_Catalogo
     private function Obten_Catalogo($catalogo,$llave,$prm1="",$prm2="",$prm3="") {
         $rs = false;
         $cata = $this->conn->qstr($catalogo);
         $l = $this->conn->qstr($llave);
-        $qry = "select * from pac_Catalogos where cata_cata = $cata and cata_llave = $l";
+        $qry = "select * from pac_Catalogos where cata_cata = $cata";
+        if ($prm2!="Cuota") { // Por cuota la llave es el tope
+            $qry .= " and cata_llave = $l";
+        }
         if ($prm1!="") {
             $p = $this->conn->qstr($prm1);
             $qry .= " and cata_prm1 = $p";
