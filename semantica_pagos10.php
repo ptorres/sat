@@ -300,33 +300,11 @@ class Pagos10 {
                   return false;
 	      }
 	   } 
+           $regFdeP = $this->Obten_Catalogo("c_FormaPago",$FormaDePagoP);
+           $regex_ord = trim($regFdeP['regex_cp']);
+           $regex_ben = trim($regFdeP['regex_taxid']);
            if ($CtaOrdenante !=null) {
-	       $Patron_CO = "";
-	       switch ($FormaDePagoP) {
-		  case "02":
-		     $Patron_CO = "[0-9]{11}|[0-9]{18}";
-		     break;
-		  case "03":
-		     $Patron_CO = "[0-9]{10}|[0-9]{16}|[0-9]{18}";
-		     break;
-		  case "04":
-		     $Patron_CO = "[0-9]{16}";
-		     break;
-		  case "05":
-		     $Patron_CO = "[0-9]{10,11}|[0-9]{15,16}|[0-9]{18}|[A-Z0-9_]{10,50}";
-		     break;
-		  case "06":
-		     $Patron_CO = "[0-9]{10}";
-		     break;
-		  case "28":
-		     $Patron_CO = "[0-9]{16}";
-		     break;
-		  case "29":
-		     $Patron_CO = "[0-9]{15,16}";
-		     break;
-	       }  
-               $regex = $Patron_CO; //TODO de donde obtengo el patron de bloqueo
-               $aux = "/^$regex$/A";
+               $aux = "/^$regex_ord$/A";
                $ok = preg_match($aux,$CtaOrdenante);
                if (!$ok) {
                    $this->status = "CRP213 El campo CtaOrdenante no cumple con el patron requerido.";
@@ -378,7 +356,7 @@ class Pagos10 {
                       return false;
 		  } 	 
 	      }
-	      if ($MonedaDR == "MXN" && $MonedaP != "MXN"){//TODO Revisar si MEX es correcto, segun yo MXN
+	      if ($MonedaDR == "MXN" && $MonedaP != "MXN"){
 	          if ($TipoCambioDR != "1"){
                       $this->status = "CRP220 El campo TipoCambioDR debe ser '1'.";
                       $this->codigo = "220 ".$this->status;
@@ -518,9 +496,7 @@ class Pagos10 {
 	       }
 	   }
            if ($CtaBeneficiario != null) {
-	       $Patron_CB ="[0-9]{11}|[0-9]{18}";
-               $regex = $Patron_CB; //TODO de donde obtengo el patron de bloqueo
-               $aux = "/^$regex$/A";
+               $aux = "/^$regex_ben$/A";
                $ok = preg_match($aux,$CtaBeneficiario);
                if (!$ok) {
                    $this->status = "CRP239 El campo CtaBeneficiario no cumple con el patron requerido.";
